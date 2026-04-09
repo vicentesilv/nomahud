@@ -1,5 +1,5 @@
 # Etapa de desarrollo
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 
 WORKDIR /usr/src/app
 
@@ -7,16 +7,14 @@ COPY package*.json ./
 
 RUN npm install
 
-COPY --chown=node:node . .
-
-USER node
+COPY . .
 
 EXPOSE 3000
 
 CMD ["npm", "run", "start:dev"]
 
 # Etapa de producción
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}

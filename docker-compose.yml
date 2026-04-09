@@ -1,4 +1,21 @@
 services:
+  frontend2:
+    build:
+      context: ./frontend2
+      target: development
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./frontend2:/app
+      - frontend2-node-modules:/app/node_modules
+    networks:
+      - app-network
+    depends_on:
+      - app
+
   app:
     build:
       context: ./backend
@@ -40,6 +57,7 @@ services:
 
 volumes:
   mysql-data:
+  frontend2-node-modules:
 
 networks:
   app-network:
