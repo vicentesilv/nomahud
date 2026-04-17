@@ -27,6 +27,11 @@ services:
       - '3001:3000'
     environment:
       NODE_ENV: development
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD?DB_PASSWORD is required}
+      DB_NAME: ${DB_NAME?DB_NAME is required}
     volumes:
       - ./backend:/usr/src/app
       - backend-node-modules:/usr/src/app/node_modules
@@ -43,8 +48,8 @@ services:
     ports:
       - '3308:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
-      MYSQL_DATABASE: ${DB_DATABASE:-app_db}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD?DB_PASSWORD is required}
+      MYSQL_DATABASE: ${DB_NAME?DB_NAME is required}
     volumes:
       - mysql-data:/var/lib/mysql
     networks:

@@ -5,14 +5,15 @@ services:
       target: development
     container_name: nestjs-app
     restart: unless-stopped
-    command: sh -c "npm ci && npm run start:dev"
     ports:
       - '3001:3000'
     environment:
-      NODE_ENV: development
+      - NODE_ENV=development
+    env_file:
+      - .env
     volumes:
       - .:/usr/src/app
-      - backend-node-modules:/usr/src/app/node_modules
+      - /usr/src/app/node_modules
     depends_on:
       mysql:
         condition: service_healthy
@@ -26,10 +27,11 @@ services:
     ports:
       - '3308:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
-      MYSQL_DATABASE: ${DB_DATABASE:-app_db}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD?DB_PASSWORD is required}
+      MYSQL_DATABASE: ${DB_NAME?DB_NAME is required}
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - app-network
     healthcheck:
@@ -41,7 +43,6 @@ services:
 
 volumes:
   mysql-data:
-  backend-node-modules:
 
 networks:
   app-network:
