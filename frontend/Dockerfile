@@ -11,7 +11,7 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0 --port 3000"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
 
 # Etapa de build
 FROM node:20-alpine AS builder
@@ -27,16 +27,12 @@ COPY . .
 RUN npm run build
 
 # Etapa de producción
-FROM node:20-alpine AS production
+FROM nginx:1.27-alpine AS production
 
-WORKDIR /app
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-COPY package*.json ./
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-RUN npm ci --omit=dev
+EXPOSE 80
 
-COPY --from=builder /app/dist ./dist
-
-EXPOSE 3000
-
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["nginx", "-g", "daemon off;"]

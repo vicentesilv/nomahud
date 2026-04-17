@@ -1,0 +1,144 @@
+# Dependencias
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/lerna-debug.log*
+frontend/package-lock.json
+frontend/yarn.lock
+
+backend/node_modules/
+backend/npm-debug.log*
+backend/yarn-debug.log*
+backend/yarn-error.log*
+backend/lerna-debug.log*
+backend/package-lock.json
+backend/yarn.lock
+# Compilados
+backend/dist
+backend/build
+backend/*.js.map
+
+# Logs
+backend/logs
+backend/*.log
+backend/npm-debug.log*
+backend/pnpm-debug.log*
+backend/yarn-debug.log*
+backend/yarn-error.log*
+backend/lerna-debug.log*
+
+# OS
+backend/.DS_Store
+backend/Thumbs.db
+
+# Tests
+backend/coverage
+backend/.nyc_output
+backend/*.lcov
+
+# IDEs y editores
+backend/.idea
+backend/.project
+backend/.classpath
+backend/.c9/
+backend/*.launch
+backend/.settings/
+backend/*.sublime-workspace
+backend/.vscode/*
+backend/!.vscode/settings.json
+backend/!.vscode/tasks.json
+backend/!.vscode/launch.json
+backend/!.vscode/extensions.json
+
+# # Variables de entorno
+backend/.env
+backend/.env.local
+backend/.env.development.local
+backend/.env.test.local
+backend/.env.production.local
+
+# TypeScript
+backend/*.tsbuildinfo
+
+# Temp
+backend/*.tmp
+backend/*.temp
+backend/.cache
+
+# Docker
+backend/docker-compose.override.yml
+
+# Misc
+backend/.eslintcache
+backend/.cache
+backend/*.seed
+backend/*.pid
+backend/*.pid.lock
+backend/.npm
+backend/dist
+
+
+# Compilados
+frontend/dist
+frontend/build
+frontend/*.js.map
+
+# Logs
+frontend/logs
+frontend/*.log
+frontend/npm-debug.log*
+frontend/pnpm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/lerna-debug.log*
+
+# OS
+frontend/.DS_Store
+frontend/Thumbs.db
+
+# Tests
+frontend/coverage
+frontend/.nyc_output
+frontend/*.lcov
+
+# IDEs y editores
+frontend/.idea
+frontend/.project
+frontend/.classpath
+frontend/.c9/
+frontend/*.launch
+frontend/.settings/
+frontend/*.sublime-workspace
+frontend/.vscode/*
+frontend/!.vscode/settings.json
+frontend/!.vscode/tasks.json
+frontend/!.vscode/launch.json
+frontend/!.vscode/extensions.json
+
+# # Variables de entorno
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# TypeScript
+frontend/*.tsbuildinfo
+
+# Temp
+frontend/*.tmp
+frontend/*.temp
+frontend/.cache
+
+# Docker
+frontend/docker-compose.override.yml
+
+# Misc
+frontend/.eslintcache
+frontend/.cache
+frontend/*.seed
+frontend/*.pid
+frontend/*.pid.lock
+frontend/.npm
+frontend/dist

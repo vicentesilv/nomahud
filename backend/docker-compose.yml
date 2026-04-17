@@ -5,13 +5,14 @@ services:
       target: development
     container_name: nestjs-app
     restart: unless-stopped
+    command: sh -c "npm ci && npm run start:dev"
     ports:
       - '3001:3000'
     environment:
       NODE_ENV: development
     volumes:
       - .:/usr/src/app
-      - /usr/src/app/node_modules
+      - backend-node-modules:/usr/src/app/node_modules
     depends_on:
       mysql:
         condition: service_healthy
@@ -40,6 +41,7 @@ services:
 
 volumes:
   mysql-data:
+  backend-node-modules:
 
 networks:
   app-network:
