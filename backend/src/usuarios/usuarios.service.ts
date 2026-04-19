@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Usuario } from './usuarios.entity';
 import { Repository } from 'typeorm';
+import { CreateUsuarioDto } from './dtos/create.usuario.dto';
 
 @Injectable()
 export class UsuariosService {
@@ -10,28 +11,25 @@ export class UsuariosService {
         
     ){}
 
-    async createUsuario(
-        nombre: string,
-        correo: string,
-        contrasena: string,
-        ciudad?: string,
-        fechaNacimiento?: Date,
-    ): Promise<Usuario> {
-        const usuario = this.usuariosRepository.create({
-            nombre,
-            correo,
-            contrasena,
-            ciudad,
-            fechaNacimiento,
-        });
+    async createUsuario(createUsuarioDto: CreateUsuarioDto): Promise<Usuario> {
+        const usuario = this.usuariosRepository.create(createUsuarioDto);
 
         const usuarioCreado = await this.usuariosRepository.save(usuario);
         const { contrasena: _, ...usuarioSinContrasena } = usuarioCreado as Usuario & {
             contrasena?: string;
         };
-
         return usuarioSinContrasena as Usuario;
     }
 
+    async findByEmail(correo: string): Promise<Usuario | null> {
+        return this.usuariosRepository.findOne({
+            where: { correo },
+        });
+    }
 
+    async findById(id: number): Promise<Usuario | null> {
+        return this.usuariosRepository.findOne({
+            where: { id },
+        });
+    }
 }
