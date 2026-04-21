@@ -28,7 +28,9 @@ export class UsuariosController {
     }
 
     @Patch(':id')
-    async updateUser() {}
+    async updateUser(@Param('id') id: number, @Body() updateUsuarioDto: Partial<CreateUsuarioDto>) {
+        return this.usuariosService.updateUsuario(id, updateUsuarioDto);
+    }
 
     @Delete(':id')
     async deleteUser() {}
