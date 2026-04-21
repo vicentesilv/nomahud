@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { hash } from 'bcrypt';
 import { CreateUsuarioDto } from './dtos/create.usuario.dto';
 import { Usuario } from './entitys/usuarios.entity';
@@ -22,7 +22,7 @@ export class UsuariosController {
     async getUser(@Param('id') id: number): Promise<Usuario> {
         const usuario = await this.usuariosService.findById(id);
         if (!usuario) {
-            throw new Error('Usuario not found');
+            throw new NotFoundException('Usuario no existe');
         }
         return usuario;
     }

@@ -23,6 +23,7 @@ describe('UsuariosController', () => {
 					useValue: {
 						createUsuario: jest.fn(),
 						findById: jest.fn(),
+						updateUsuario: jest.fn(),
 					},
 				},
 			],
@@ -104,5 +105,31 @@ describe('UsuariosController', () => {
 		const result = await controller.getUser(1);
 
 		expect(result).toBe(usuario);
+	});
+	it('GET /usuarios/:id: lanza error si usuario no existe', async () => {
+		usuariosService.findById.mockResolvedValue(null);
+
+		await expect(controller.getUser(999)).rejects.toThrow('Usuario no existe');
+	});
+	it('PATCH /usuarios/:id: llama a updateUsuario del service', async () => {
+		const updateDto = { 
+			correo: 'vicente@gmail.com',
+			ciudad: 'Valparaiso',
+		};
+
+		const usuarioActualizado = {
+			id: 1,
+			nombre: 'Vicente',
+			correo: updateDto.correo,
+			ciudad: updateDto.ciudad,
+			fechaNacimiento: new Date('2000-01-01'),
+		} as Usuario;
+
+		usuariosService.updateUsuario.mockResolvedValue(usuarioActualizado);
+
+		const result = await controller.updateUser(1, updateDto);
+
+		expect(usuariosService.updateUsuario).toHaveBeenCalledWith(1, updateDto);
+		expect(result).toBe(usuarioActualizado);
 	});
 });
