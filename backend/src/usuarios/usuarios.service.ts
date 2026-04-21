@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Usuario } from './usuarios.entity';
+import { Usuario } from './entitys/usuarios.entity';
 import { Repository } from 'typeorm';
 import { CreateUsuarioDto } from './dtos/create.usuario.dto';
 import { UpdateUsuarioDto } from './dtos/update.usuario.dto';

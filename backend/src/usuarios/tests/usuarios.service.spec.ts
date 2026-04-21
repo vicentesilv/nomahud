@@ -2,10 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import { CreateUsuarioDto } from './dtos/create.usuario.dto';
-import { Usuario } from './usuarios.entity';
-import { UsuariosService } from './usuarios.service';
-import { UpdateUsuarioDto } from './dtos/update.usuario.dto';
+import { CreateUsuarioDto } from '../dtos/create.usuario.dto';
+import { Usuario } from '../entitys/usuarios.entity';
+import { UsuariosService } from '../usuarios.service';
+import { UpdateUsuarioDto } from '../dtos/update.usuario.dto';
 
 describe('UsuariosService', () => {
   let service: UsuariosService;
