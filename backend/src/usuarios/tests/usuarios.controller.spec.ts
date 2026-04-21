@@ -132,4 +132,26 @@ describe('UsuariosController', () => {
 		expect(usuariosService.updateUsuario).toHaveBeenCalledWith(1, updateDto);
 		expect(result).toBe(usuarioActualizado);
 	});
+	it('PATCH /usuarios/:id: lanza error si se intenta actualizar nombre o fechaNacimiento', async () => {
+		const updateDto = { 
+			nombre: 'Nuevo Nombre',
+			fechaNacimiento: new Date('1990-01-01'),
+		};
+
+		usuariosService.updateUsuario.mockRejectedValue(
+			new Error('No se permite actualizar nombre ni fechaNacimiento'),
+		);
+
+		await expect(controller.updateUser(1, updateDto)).rejects.toThrow('No se permite actualizar nombre ni fechaNacimiento');
+		expect(usuariosService.updateUsuario).toHaveBeenCalledWith(1, updateDto);
+	});
+	it('PATCH /usuarios/:id: erro si usuario no existe', async () => {
+		const updateDto = { 
+			correo: 'vicente@gmail.com',
+		};
+
+		usuariosService.updateUsuario.mockRejectedValue(new Error('Usuario no encontrado'));
+
+		await expect(controller.updateUser(999, updateDto)).rejects.toThrow('Usuario no encontrado');
+	});
 });
