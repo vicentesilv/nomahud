@@ -44,12 +44,12 @@ Thumbs.db
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# # Variables de entorno
-# .env
-# .env.local
-# .env.development.local
-# .env.test.local
-# .env.production.local
+# Variables de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # TypeScript
 *.tsbuildinfo
