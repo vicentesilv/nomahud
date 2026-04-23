@@ -335,4 +335,62 @@ describe('AuthService', () => {
 			BadRequestException,
 		);
 	});
+
+	it('reenviarConfirmacion: reenvía correo cuando cumple la frecuencia', async () => {
+		const usuario = {
+			id: 20,
+			nombre: 'Vicente',
+			correo: 'vicente@mail.com',
+			emailVerificado: false,
+		} as any;
+
+		(crypto.randomBytes as jest.Mock).mockReturnValue(Buffer.from('token-reenvio'));
+		usuariosService.findByEmail.mockResolvedValue(usuario);
+		authTokenRepository.findOne.mockResolvedValue({
+			id: 1,
+			usuarioId: 20,
+			tipo: 'confirmacion_email',
+			creadoEn: new Date(Date.now() - 61 * 1000),
+		} as any);
+		authTokenRepository.create.mockReturnValue({ id: 2 } as any);
+		authTokenRepository.save.mockResolvedValue({ id: 2 } as any);
+		(mailService.sendMail as jest.Mock).mockResolvedValue(undefined);
+
+		const result = await service.reenviarConfirmacion('vicente@mail.com');
+
+		expect(usuariosService.findByEmail).toHaveBeenCalledWith('vicente@mail.com');
+		expect(authTokenRepository.findOne).toHaveBeenCalledWith({
+			where: {
+				usuarioId: 20,
+				tipo: 'confirmacion_email',
+			},
+			order: {
+				creadoEn: 'DESC',
+			},
+		});
+		expect(authTokenRepository.create).toHaveBeenCalled();
+		expect(authTokenRepository.save).toHaveBeenCalled();
+		expect(mailService.sendMail).toHaveBeenCalled();
+		expect(result).toEqual({ mensaje: 'Correo de confirmación reenviado correctamente' });
+	});
+
+	it('reenviarConfirmacion: bloquea si se solicita antes de 60 segundos', async () => {
+		usuariosService.findByEmail.mockResolvedValue({
+			id: 20,
+			correo: 'vicente@mail.com',
+			nombre: 'Vicente',
+			emailVerificado: false,
+		} as any);
+		authTokenRepository.findOne.mockResolvedValue({
+			id: 1,
+			usuarioId: 20,
+			tipo: 'confirmacion_email',
+			creadoEn: new Date(Date.now() - 30 * 1000),
+		} as any);
+
+		await expect(service.reenviarConfirmacion('vicente@mail.com')).rejects.toThrow(
+			'Debes esperar 60 segundos antes de reenviar la confirmación',
+		);
+		expect(mailService.sendMail).not.toHaveBeenCalled();
+	});
 });

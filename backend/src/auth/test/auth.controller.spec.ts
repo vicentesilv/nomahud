@@ -16,6 +16,7 @@ describe('AuthController', () => {
 						login: jest.fn(),
 						register: jest.fn(),
 						confirmarCuenta: jest.fn(),
+						reenviarConfirmacion: jest.fn(),
 					},
 				},
 			],
@@ -66,5 +67,16 @@ describe('AuthController', () => {
 
 		expect(authService.confirmarCuenta).toHaveBeenCalledWith('token-123');
 		expect(result).toEqual({ mensaje: 'Cuenta confirmada correctamente' });
+	});
+
+	it('reenviarConfirmacion: delega en AuthService', async () => {
+		authService.reenviarConfirmacion.mockResolvedValue({
+			mensaje: 'Correo de confirmación reenviado correctamente',
+		});
+
+		const result = await controller.reenviarConfirmacion({ correo: 'vicente@mail.com' });
+
+		expect(authService.reenviarConfirmacion).toHaveBeenCalledWith('vicente@mail.com');
+		expect(result).toEqual({ mensaje: 'Correo de confirmación reenviado correctamente' });
 	});
 });

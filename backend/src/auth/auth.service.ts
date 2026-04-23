@@ -132,6 +132,44 @@ export class AuthService {
         };
     }
 
+    async reenviarConfirmacion(correo: string): Promise<{ mensaje: string }> {
+        const usuario = await this.usuariosService.findByEmail(correo);
+
+        if (!usuario) {
+            throw new BadRequestException('Usuario no encontrado');
+        }
+
+        if (usuario.emailVerificado) {
+            return {
+                mensaje: 'La cuenta ya está confirmada',
+            };
+        }
+
+        const ultimoToken = await this.authTokenRepository.findOne({
+            where: {
+                usuarioId: usuario.id,
+                tipo: 'confirmacion_email',
+            },
+            order: {
+                creadoEn: 'DESC',
+            },
+        });
+
+        if (ultimoToken) {
+            const segundosDesdeUltimoEnvio = (Date.now() - ultimoToken.creadoEn.getTime()) / 1000;
+
+            if (segundosDesdeUltimoEnvio < 60) {
+                throw new BadRequestException('Debes esperar 60 segundos antes de reenviar la confirmación');
+            }
+        }
+
+        await this.sendEmailConfirmation(usuario as Usuario);
+
+        return {
+            mensaje: 'Correo de confirmación reenviado correctamente',
+        };
+    }
+
     private async sendEmailConfirmation(usuario: Usuario): Promise<void> {
         const token = crypto.randomBytes(32).toString('hex');
         const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
