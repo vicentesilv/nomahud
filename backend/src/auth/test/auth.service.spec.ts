@@ -1,19 +1,38 @@
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { AuthService } from '../auth.service';
 import { UsuariosService } from '../../usuarios/usuarios.service';
+import { MailService } from '../../mail/mail.service';
+import { AuthToken } from '../entitys/auth-token.entity';
 
 jest.mock('bcrypt', () => ({
 	compare: jest.fn(),
 	hash: jest.fn(),
 }));
 
+jest.mock('crypto', () => {
+	const actualCrypto = jest.requireActual('crypto');
+
+	return {
+		...actualCrypto,
+		randomBytes: jest.fn(),
+	};
+});
+
 describe('AuthService', () => {
 	let service: AuthService;
 	let jwtService: jest.Mocked<JwtService>;
 	let usuariosService: jest.Mocked<UsuariosService>;
+	let mailService: jest.Mocked<MailService>;
+	let authTokenRepository: {
+		create: jest.Mock;
+		findOne: jest.Mock;
+		save: jest.Mock;
+	};
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -29,7 +48,23 @@ describe('AuthService', () => {
 					provide: UsuariosService,
 					useValue: {
 						findByEmail: jest.fn(),
+						findById: jest.fn(),
+						marcarEmailVerificado: jest.fn(),
 						createUsuario: jest.fn(),
+					},
+				},
+				{
+					provide: MailService,
+					useValue: {
+						sendMail: jest.fn(),
+					},
+				},
+				{
+					provide: getRepositoryToken(AuthToken),
+					useValue: {
+						create: jest.fn(),
+						findOne: jest.fn(),
+						save: jest.fn(),
 					},
 				},
 			],
@@ -38,12 +73,15 @@ describe('AuthService', () => {
 		service = module.get<AuthService>(AuthService);
 		jwtService = module.get(JwtService);
 		usuariosService = module.get(UsuariosService);
+		mailService = module.get(MailService);
+		authTokenRepository = module.get(getRepositoryToken(AuthToken));
 	});
 
 	afterEach(() => {
 		jest.clearAllMocks();
 		delete process.env.JWT_SECRET;
 		delete process.env.JWT_EXPIRES_IN;
+		delete process.env.FRONTEND_URL;
 	});
 
 	it('debe estar definido', () => {
@@ -158,6 +196,9 @@ describe('AuthService', () => {
 
 	it('register: crea usuario con contrasena hasheada', async () => {
 		const fechaNacimiento = new Date('2000-01-01');
+		(crypto.randomBytes as jest.Mock).mockReturnValue(Buffer.from('token-confirmacion'));
+		const confirmationToken = Buffer.from('token-confirmacion').toString('hex');
+		const expectedTokenHash = crypto.createHash('sha256').update(confirmationToken).digest('hex');
 
 		usuariosService.findByEmail.mockResolvedValue(null);
 		(bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
@@ -168,6 +209,10 @@ describe('AuthService', () => {
 			ciudad: 'Santiago',
 			fechaNacimiento,
 		} as any);
+		authTokenRepository.create.mockReturnValue({ id: 1 } as AuthToken);
+		authTokenRepository.save.mockResolvedValue({ id: 1 } as AuthToken);
+		(mailService.sendMail as jest.Mock).mockResolvedValue(undefined);
+		process.env.FRONTEND_URL = 'http://frontend.test';
 
 		const result = await service.register(
 			'Vicente',
@@ -186,6 +231,24 @@ describe('AuthService', () => {
 			ciudad: 'Santiago',
 			fechaNacimiento,
 		});
+		expect(authTokenRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				usuarioId: 20,
+				tipo: 'confirmacion_email',
+				tokenHash: expectedTokenHash,
+				expiraEn: expect.any(Date),
+			}),
+		);
+		expect(authTokenRepository.save).toHaveBeenCalled();
+		expect(mailService.sendMail).toHaveBeenCalledWith(
+			'vicente@mail.com',
+			'Confirma tu cuenta',
+			expect.stringContaining('Confirma tu cuenta'),
+			expect.objectContaining({
+				nombre: 'Vicente',
+				enlaceConfirmacion: `http://frontend.test/confirmar-cuenta?token=${confirmationToken}`,
+			}),
+		);
 		expect(result).toEqual({
 			usuario: {
 				id: 20,
@@ -206,5 +269,49 @@ describe('AuthService', () => {
 
 		expect(bcrypt.hash).not.toHaveBeenCalled();
 		expect(usuariosService.createUsuario).not.toHaveBeenCalled();
+	});
+
+	it('confirmarCuenta: marca email como verificado y usa token', async () => {
+		const token = 'confirmacion-token';
+		const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+		const authToken = {
+			id: 1,
+			usuarioId: 20,
+			tipo: 'confirmacion_email',
+			tokenHash,
+			expiraEn: new Date(Date.now() + 60 * 60 * 1000),
+			usadoEn: null,
+		} as any;
+
+		authTokenRepository.findOne.mockResolvedValue(authToken);
+		(usuariosService.marcarEmailVerificado as jest.Mock).mockResolvedValue({
+			id: 20,
+			emailVerificado: true,
+		} as any);
+		authTokenRepository.save.mockResolvedValue({ ...authToken, usadoEn: new Date() } as any);
+
+		const result = await service.confirmarCuenta(token);
+
+		expect(authTokenRepository.findOne).toHaveBeenCalledWith({
+			where: {
+				tokenHash,
+				tipo: 'confirmacion_email',
+			},
+		});
+		expect(usuariosService.marcarEmailVerificado).toHaveBeenCalledWith(20);
+		expect(authTokenRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				usadoEn: expect.any(Date),
+			}),
+		);
+		expect(result).toEqual({ mensaje: 'Cuenta confirmada correctamente' });
+	});
+
+	it('confirmarCuenta: lanza BadRequestException si el token no existe', async () => {
+		authTokenRepository.findOne.mockResolvedValue(null);
+
+		await expect(service.confirmarCuenta('token-invalido')).rejects.toBeInstanceOf(
+			BadRequestException,
+		);
 	});
 });

@@ -4,6 +4,7 @@ import { Usuario } from './entitys/usuarios.entity';
 import { Repository } from 'typeorm';
 import { CreateUsuarioDto } from './dtos/create.usuario.dto';
 import { UpdateUsuarioDto } from './dtos/update.usuario.dto';
+import { EstadoCuenta } from './entitys/usuarios.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -54,6 +55,25 @@ export class UsuariosService {
         const usuario = await this.findById(id);
         if (!usuario) throw new NotFoundException('Usuario no encontrado');
         await this.usuariosRepository.remove(usuario);
+    }
+
+    async marcarEmailVerificado(id: number): Promise<Usuario> {
+        const usuario = await this.findById(id);
+
+        if (!usuario) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+
+        usuario.emailVerificado = true;
+        usuario.emailVerificadoAt = new Date();
+        usuario.estadoCuenta = 'activa' as EstadoCuenta;
+
+        const usuarioActualizado = await this.usuariosRepository.save(usuario);
+        const { contrasena: _, ...usuarioSinContrasena } = usuarioActualizado as Usuario & {
+            contrasena?: string;
+        };
+
+        return usuarioSinContrasena as Usuario;
     }
     
 

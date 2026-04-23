@@ -215,4 +215,40 @@ describe('UsuariosService', () => {
     expect(repo.remove).toHaveBeenCalledWith(usuarioExistente);
   });
 
+  it('marcarEmailVerificado: actualiza estado y fecha de verificacion', async () => {
+    const usuarioExistente: Usuario = {
+      id: 1,
+      nombre: 'Nombre',
+      correo: 'usuario@mail.com',
+      contrasena: '12345678',
+      ciudad: 'Ciudad',
+      fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
+    };
+
+    repo.findOne.mockResolvedValue(usuarioExistente);
+    repo.save.mockResolvedValue({
+      ...usuarioExistente,
+      emailVerificado: true,
+      emailVerificadoAt: new Date('2026-04-22T00:00:00.000Z'),
+      estadoCuenta: 'activa',
+    });
+
+    const result = await service.marcarEmailVerificado(1);
+
+    expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+    expect(repo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 1,
+        emailVerificado: true,
+        estadoCuenta: 'activa',
+        emailVerificadoAt: expect.any(Date),
+      }),
+    );
+    expect(result.emailVerificado).toBe(true);
+    expect(result.estadoCuenta).toBe('activa');
+  });
+
 });

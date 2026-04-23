@@ -1,11 +1,31 @@
-import { Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dtos/login.dto';
+import { RegisterDto } from './dtos/register.dto';
+import { ConfirmarCuentaDto } from './dtos/confirmar-cuenta.dto';
 
 @Controller('auth')
 export class AuthController {
+    constructor(private readonly authService: AuthService) {}
 
     @Post('inicio-sesion')
-    async login() {}
+    async login(@Body() loginDto: LoginDto) {
+        return this.authService.login(loginDto.correo, loginDto.contrasena);
+    }
 
     @Post('registro')
-    async register() {}
+    async register(@Body() registerDto: RegisterDto) {
+        return this.authService.register(
+            registerDto.nombre,
+            registerDto.correo,
+            registerDto.contrasena,
+            registerDto.ciudad,
+            registerDto.fechaNacimiento,
+        );
+    }
+
+    @Post('confirmar-cuenta')
+    async confirmarCuenta(@Body() confirmarCuentaDto: ConfirmarCuentaDto) {
+        return this.authService.confirmarCuenta(confirmarCuentaDto.token);
+    }
 }
