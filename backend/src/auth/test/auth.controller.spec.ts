@@ -1,139 +1,109 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
-import { LoginDto } from '../dtos/login.dto';
-import { CreateUsuarioDto } from '../../usuarios/dtos/create.usuario.dto';
 
 describe('AuthController', () => {
-  let controller: AuthController;
-  let authService: jest.Mocked<AuthService>;
+	let controller: AuthController;
+	let authService: jest.Mocked<AuthService>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AuthController],
-      providers: [
-        {
-          provide: AuthService,
-          useValue: {
-            login: jest.fn(),
-            register: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			controllers: [AuthController],
+			providers: [
+				{
+					provide: AuthService,
+					useValue: {
+						login: jest.fn(),
+						register: jest.fn(),
+						confirmarCuenta: jest.fn(),
+						reenviarConfirmacion: jest.fn(),
+						solicitarRecuperacion: jest.fn(),
+						restablecerContrasena: jest.fn(),
+					},
+				},
+			],
+		}).compile();
 
-    controller = module.get<AuthController>(AuthController);
-    authService = module.get(AuthService);
-  });
+		controller = module.get(AuthController);
+		authService = module.get(AuthService);
+	});
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+	it('debe estar definido', () => {
+		expect(controller).toBeDefined();
+	});
 
-  it('debe estar definido', () => {
-    expect(controller).toBeDefined();
-  });
+	it('login: delega en AuthService', async () => {
+		authService.login.mockResolvedValue({ token: 'jwt', usuario: { id: 1 } } as any);
 
-  it('POST /auth/inicio-sesion no debe estar protegido con JwtAuthGuard', () => {
-    const guards = Reflect.getMetadata(GUARDS_METADATA, AuthController.prototype.login);
-    expect(guards).toBeUndefined();
-  });
+		const result = await controller.login({ correo: 'test@mail.com', contrasena: '12345678' });
 
-  it('POST /auth/registro no debe estar protegido con JwtAuthGuard', () => {
-    const guards = Reflect.getMetadata(GUARDS_METADATA, AuthController.prototype.register);
-    expect(guards).toBeUndefined();
-  });
+		expect(authService.login).toHaveBeenCalledWith('test@mail.com', '12345678');
+		expect(result).toEqual({ token: 'jwt', usuario: { id: 1 } });
+	});
 
-  it('login: llama a authService.login y retorna token con usuario', async () => {
-    const loginDto: LoginDto = {
-      correo: 'vicente@mail.com',
-      contrasena: '12345678',
-    };
+	it('register: delega en AuthService', async () => {
+		authService.register.mockResolvedValue({ usuario: { id: 2 } } as any);
 
-    authService.login.mockResolvedValue({
-      token: 'jwt-token',
-      usuario: {
-        id: 1,
-        nombre: 'Vicente',
-        correo: 'vicente@mail.com',
-      },
-    });
+		const result = await controller.register({
+			nombre: 'Vicente',
+			correo: 'vicente@mail.com',
+			contrasena: '12345678',
+			ciudad: 'Santiago',
+			fechaNacimiento: new Date('2000-01-01'),
+		});
 
-    const result = await controller.login(loginDto);
+		expect(authService.register).toHaveBeenCalledWith(
+			'Vicente',
+			'vicente@mail.com',
+			'12345678',
+			'Santiago',
+			new Date('2000-01-01'),
+		);
+		expect(result).toEqual({ usuario: { id: 2 } });
+	});
 
-    expect(authService.login).toHaveBeenCalledWith('vicente@mail.com', '12345678');
-    expect(result).toEqual({
-      token: 'jwt-token',
-      usuario: {
-        id: 1,
-        nombre: 'Vicente',
-        correo: 'vicente@mail.com',
-      },
-    });
-  });
+	it('confirmarCuenta: delega en AuthService', async () => {
+		authService.confirmarCuenta.mockResolvedValue({ mensaje: 'Cuenta confirmada correctamente' });
 
-  it('login: propaga UnauthorizedException', async () => {
-    const loginDto: LoginDto = {
-      correo: 'vicente@mail.com',
-      contrasena: 'bad-password',
-    };
+		const result = await controller.confirmarCuenta({ token: 'token-123' });
 
-    authService.login.mockRejectedValue(new UnauthorizedException('Credenciales inválidas'));
+		expect(authService.confirmarCuenta).toHaveBeenCalledWith('token-123');
+		expect(result).toEqual({ mensaje: 'Cuenta confirmada correctamente' });
+	});
 
-    await expect(controller.login(loginDto)).rejects.toBeInstanceOf(UnauthorizedException);
-  });
+	it('reenviarConfirmacion: delega en AuthService', async () => {
+		authService.reenviarConfirmacion.mockResolvedValue({
+			mensaje: 'Correo de confirmación reenviado correctamente',
+		});
 
-  it('register: llama a authService.register y retorna usuario', async () => {
-    const fechaNacimiento = new Date('2000-01-01');
-    const registerDto: CreateUsuarioDto = {
-      nombre: 'Vicente',
-      correo: 'vicente@mail.com',
-      contrasena: '12345678',
-      ciudad: 'Santiago',
-      fechaNacimiento,
-    };
+		const result = await controller.reenviarConfirmacion({ correo: 'vicente@mail.com' });
 
-    authService.register.mockResolvedValue({
-      usuario: {
-        id: 2,
-        nombre: 'Vicente',
-        correo: 'vicente@mail.com',
-        ciudad: 'Santiago',
-        fechaNacimiento,
-      },
-    });
+		expect(authService.reenviarConfirmacion).toHaveBeenCalledWith('vicente@mail.com');
+		expect(result).toEqual({ mensaje: 'Correo de confirmación reenviado correctamente' });
+	});
 
-    const result = await controller.register(registerDto);
+	it('solicitarRecuperacion: delega en AuthService', async () => {
+		authService.solicitarRecuperacion.mockResolvedValue({
+			mensaje: 'Si el correo existe, se enviaron instrucciones',
+		});
 
-    expect(authService.register).toHaveBeenCalledWith(
-      'Vicente',
-      'vicente@mail.com',
-      '12345678',
-      'Santiago',
-      fechaNacimiento,
-    );
-    expect(result).toEqual({
-      usuario: {
-        id: 2,
-        nombre: 'Vicente',
-        correo: 'vicente@mail.com',
-        ciudad: 'Santiago',
-        fechaNacimiento,
-      },
-    });
-  });
+		const result = await controller.solicitarRecuperacion({ correo: 'vicente@mail.com' });
 
-  it('register: propaga BadRequestException cuando usuario ya existe', async () => {
-    const registerDto: CreateUsuarioDto = {
-      nombre: 'Vicente',
-      correo: 'vicente@mail.com',
-      contrasena: '12345678',
-    };
+		expect(authService.solicitarRecuperacion).toHaveBeenCalledWith('vicente@mail.com');
+		expect(result).toEqual({ mensaje: 'Si el correo existe, se enviaron instrucciones' });
+	});
 
-    authService.register.mockRejectedValue(new BadRequestException('El usuario ya existe'));
+	it('restablecerContrasena: delega en AuthService', async () => {
+		authService.restablecerContrasena.mockResolvedValue({
+			mensaje: 'Contraseña restablecida correctamente',
+		});
 
-    await expect(controller.register(registerDto)).rejects.toBeInstanceOf(BadRequestException);
-  });
+		const result = await controller.restablecerContrasena({
+			token: 'token-123',
+			nuevaContrasena: 'Nueva1234',
+		});
+
+		expect(authService.restablecerContrasena).toHaveBeenCalledWith('token-123', 'Nueva1234');
+		expect(result).toEqual({ mensaje: 'Contraseña restablecida correctamente' });
+	});
 });

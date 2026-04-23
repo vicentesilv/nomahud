@@ -1,14 +1,28 @@
-import { BadRequestException, UnauthorizedException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AuthToken } from './entitys/auth-token.entity';
+import * as crypto from 'crypto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+    private readonly mailMetrics = {
+        enviados: 0,
+        fallidos: 0,
+    };
+
     constructor(
         private readonly jwtService: JwtService,
         private readonly usuariosService: UsuariosService,
+        private readonly mailService: MailService,
+        @InjectRepository(AuthToken)
+        private readonly authTokenRepository: Repository<AuthToken>,
     ) {}
 
     private async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
@@ -49,6 +63,10 @@ export class AuthService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
+        if (!usuarioConContrasena.emailVerificado) {
+            throw new UnauthorizedException('Debes confirmar tu cuenta antes de iniciar sesión');
+        }
+
         const { contrasena: _, ...usuarioSinContrasena } = usuarioConContrasena;
         const token = this.generateToken(usuarioSinContrasena.id, usuarioSinContrasena.correo);
 
@@ -81,9 +99,226 @@ export class AuthService {
             fechaNacimiento,
         });
 
+        await this.sendEmailConfirmation(usuarioCreado as Usuario);
+
         return {
             usuario: usuarioCreado,
         };
+    }
+
+    async confirmarCuenta(token: string): Promise<{ mensaje: string }> {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+        const authToken = await this.authTokenRepository.findOne({
+            where: {
+                tokenHash,
+                tipo: 'confirmacion_email',
+            },
+        });
+
+        if (!authToken) {
+            throw new BadRequestException('Token inválido o expirado');
+        }
+
+        if (authToken.usadoEn) {
+            throw new BadRequestException('Token ya utilizado');
+        }
+
+        if (authToken.expiraEn.getTime() < Date.now()) {
+            throw new BadRequestException('Token expirado');
+        }
+
+        await this.usuariosService.marcarEmailVerificado(authToken.usuarioId);
+
+        authToken.usadoEn = new Date();
+        await this.authTokenRepository.save(authToken);
+
+        this.logger.log(`Cuenta confirmada para usuarioId=${authToken.usuarioId}`);
+
+        return {
+            mensaje: 'Cuenta confirmada correctamente',
+        };
+    }
+
+    async reenviarConfirmacion(correo: string): Promise<{ mensaje: string }> {
+        const usuario = await this.usuariosService.findByEmail(correo);
+
+        if (!usuario) {
+            throw new BadRequestException('Usuario no encontrado');
+        }
+
+        if (usuario.emailVerificado) {
+            return {
+                mensaje: 'La cuenta ya está confirmada',
+            };
+        }
+
+        const ultimoToken = await this.authTokenRepository.findOne({
+            where: {
+                usuarioId: usuario.id,
+                tipo: 'confirmacion_email',
+            },
+            order: {
+                creadoEn: 'DESC',
+            },
+        });
+
+        if (ultimoToken) {
+            const segundosDesdeUltimoEnvio = (Date.now() - ultimoToken.creadoEn.getTime()) / 1000;
+
+            if (segundosDesdeUltimoEnvio < 60) {
+                throw new BadRequestException('Debes esperar 60 segundos antes de reenviar la confirmación');
+            }
+        }
+
+        await this.sendEmailConfirmation(usuario as Usuario);
+
+        return {
+            mensaje: 'Correo de confirmación reenviado correctamente',
+        };
+    }
+
+    async solicitarRecuperacion(correo: string): Promise<{ mensaje: string }> {
+        const mensaje = 'Si el correo existe, se enviaron instrucciones';
+        const usuario = await this.usuariosService.findByEmail(correo);
+
+        if (!usuario) {
+            return { mensaje };
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
+
+        await this.authTokenRepository.save(
+            this.authTokenRepository.create({
+                usuarioId: usuario.id,
+                tipo: 'recuperacion_password',
+                tokenHash,
+                expiraEn,
+            }),
+        );
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const enlaceRecuperacion = `${frontendUrl}/restablecer-contrasena?token=${token}`;
+
+        await this.sendTransactionalEmail(
+            usuario.correo,
+            'Recuperación de contraseña',
+            `
+                <h1>Recuperación de contraseña</h1>
+                <p>Hola {{nombre}}, recibimos una solicitud para restablecer tu contraseña.</p>
+                <p>Haz clic en el siguiente enlace para continuar:</p>
+                <p><a href="{{enlaceRecuperacion}}">Restablecer contraseña</a></p>
+                <p>Este enlace vence en 1 hora.</p>
+            `,
+            {
+                nombre: usuario.nombre,
+                enlaceRecuperacion,
+            },
+            'recuperacion_solicitada',
+            usuario.id,
+        );
+
+        this.logger.log(`Recuperación solicitada para usuarioId=${usuario.id}`);
+
+        return { mensaje };
+    }
+
+    async restablecerContrasena(
+        token: string,
+        nuevaContrasena: string,
+    ): Promise<{ mensaje: string }> {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+        const authToken = await this.authTokenRepository.findOne({
+            where: {
+                tokenHash,
+                tipo: 'recuperacion_password',
+            },
+        });
+
+        if (!authToken) {
+            throw new BadRequestException('Token inválido o expirado');
+        }
+
+        if (authToken.usadoEn) {
+            throw new BadRequestException('Token ya utilizado');
+        }
+
+        if (authToken.expiraEn.getTime() < Date.now()) {
+            throw new BadRequestException('Token expirado');
+        }
+
+        const contrasenaHash = await bcrypt.hash(nuevaContrasena, 10);
+        await this.usuariosService.cambiarContrasena(authToken.usuarioId, contrasenaHash);
+
+        authToken.usadoEn = new Date();
+        await this.authTokenRepository.save(authToken);
+
+        this.logger.log(`Contraseña restablecida para usuarioId=${authToken.usuarioId}`);
+
+        return {
+            mensaje: 'Contraseña restablecida correctamente',
+        };
+    }
+
+    private async sendEmailConfirmation(usuario: Usuario): Promise<void> {
+        const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const expiraEn = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        await this.authTokenRepository.save(
+            this.authTokenRepository.create({
+                usuarioId: usuario.id,
+                tipo: 'confirmacion_email',
+                tokenHash,
+                expiraEn,
+            }),
+        );
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const enlaceConfirmacion = `${frontendUrl}/confirmar-cuenta?token=${token}`;
+
+        await this.sendTransactionalEmail(
+            usuario.correo,
+            'Confirma tu cuenta',
+            `
+                <h1>Confirma tu cuenta</h1>
+                <p>Hola {{nombre}}, gracias por registrarte.</p>
+                <p>Haz clic en el siguiente enlace para activar tu cuenta:</p>
+                <p><a href="{{enlaceConfirmacion}}">Confirmar cuenta</a></p>
+                <p>Este enlace vence en 24 horas.</p>
+            `,
+            {
+                nombre: usuario.nombre,
+                enlaceConfirmacion,
+            },
+            'confirmacion_enviada',
+            usuario.id,
+        );
+    }
+
+    private async sendTransactionalEmail(
+        to: string,
+        subject: string,
+        template: string,
+        context: Record<string, any>,
+        evento: 'confirmacion_enviada' | 'recuperacion_solicitada',
+        usuarioId?: number,
+    ): Promise<void> {
+        try {
+            await this.mailService.sendMail(to, subject, template, context);
+            this.mailMetrics.enviados += 1;
+            this.logger.log(`Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosEnviados=${this.mailMetrics.enviados}`);
+        } catch (error) {
+            this.mailMetrics.fallidos += 1;
+            this.logger.error(
+                `Fallo envío de correo. Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosFallidos=${this.mailMetrics.fallidos}`,
+                error instanceof Error ? error.stack : undefined,
+            );
+            throw error;
+        }
     }
  
 }

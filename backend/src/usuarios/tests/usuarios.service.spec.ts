@@ -22,6 +22,7 @@ describe('UsuariosService', () => {
             save: jest.fn(),
             findOne: jest.fn(),
             remove: jest.fn(),
+            update: jest.fn(),
           },
         },
       ],
@@ -46,6 +47,9 @@ describe('UsuariosService', () => {
       contrasena: dto.contrasena,
       ciudad: dto.ciudad ?? '',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
 
     repo.create.mockReturnValue(usuarioCreado);
@@ -61,6 +65,9 @@ describe('UsuariosService', () => {
       correo: 'vicente@mail.com',
       ciudad: 'Santiago',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     });
     expect((result as any).contrasena).toBeUndefined();
   });
@@ -113,6 +120,9 @@ describe('UsuariosService', () => {
       contrasena: '12345678',
       ciudad: 'Ciudad Inicial',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
 
     const dto: UpdateUsuarioDto = {
@@ -145,6 +155,9 @@ describe('UsuariosService', () => {
       correo: 'usuario@mail.com',
       ciudad: 'Ciudad Nueva',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     });
     expect((result as any).contrasena).toBeUndefined();
   });
@@ -165,6 +178,9 @@ describe('UsuariosService', () => {
       contrasena: '12345678',
       ciudad: 'Ciudad Inicial',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
 
     repo.findOne.mockResolvedValue(usuarioExistente);
@@ -186,6 +202,9 @@ describe('UsuariosService', () => {
       contrasena: '12345678',
       ciudad: 'Ciudad',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
     
     repo.findOne.mockResolvedValue(usuarioExistente);
@@ -195,6 +214,60 @@ describe('UsuariosService', () => {
 
     expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
     expect(repo.remove).toHaveBeenCalledWith(usuarioExistente);
+  });
+
+  it('marcarEmailVerificado: actualiza estado y fecha de verificacion', async () => {
+    const usuarioExistente: Usuario = {
+      id: 1,
+      nombre: 'Nombre',
+      correo: 'usuario@mail.com',
+      contrasena: '12345678',
+      ciudad: 'Ciudad',
+      fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
+    };
+
+    repo.findOne.mockResolvedValue(usuarioExistente);
+    repo.save.mockResolvedValue({
+      ...usuarioExistente,
+      emailVerificado: true,
+      emailVerificadoAt: new Date('2026-04-22T00:00:00.000Z'),
+      estadoCuenta: 'activa',
+    });
+
+    const result = await service.marcarEmailVerificado(1);
+
+    expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+    expect(repo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 1,
+        emailVerificado: true,
+        estadoCuenta: 'activa',
+        emailVerificadoAt: expect.any(Date),
+      }),
+    );
+    expect(result.emailVerificado).toBe(true);
+    expect(result.estadoCuenta).toBe('activa');
+  });
+
+  it('cambiarContrasena: actualiza contraseña hasheada', async () => {
+    repo.update.mockResolvedValue({ affected: 1 } as any);
+
+    await service.cambiarContrasena(1, 'hash-123');
+
+    expect(repo.update).toHaveBeenCalledWith(1, {
+      contrasena: 'hash-123',
+    });
+  });
+
+  it('cambiarContrasena: lanza NotFoundException si no actualiza registros', async () => {
+    repo.update.mockResolvedValue({ affected: 0 } as any);
+
+    await expect(service.cambiarContrasena(999, 'hash-123')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
 });
