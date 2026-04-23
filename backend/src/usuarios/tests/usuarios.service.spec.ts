@@ -22,6 +22,7 @@ describe('UsuariosService', () => {
             save: jest.fn(),
             findOne: jest.fn(),
             remove: jest.fn(),
+            update: jest.fn(),
           },
         },
       ],
@@ -249,6 +250,24 @@ describe('UsuariosService', () => {
     );
     expect(result.emailVerificado).toBe(true);
     expect(result.estadoCuenta).toBe('activa');
+  });
+
+  it('cambiarContrasena: actualiza contraseña hasheada', async () => {
+    repo.update.mockResolvedValue({ affected: 1 } as any);
+
+    await service.cambiarContrasena(1, 'hash-123');
+
+    expect(repo.update).toHaveBeenCalledWith(1, {
+      contrasena: 'hash-123',
+    });
+  });
+
+  it('cambiarContrasena: lanza NotFoundException si no actualiza registros', async () => {
+    repo.update.mockResolvedValue({ affected: 0 } as any);
+
+    await expect(service.cambiarContrasena(999, 'hash-123')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
 });

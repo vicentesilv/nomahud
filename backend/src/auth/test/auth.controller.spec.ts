@@ -18,6 +18,7 @@ describe('AuthController', () => {
 						confirmarCuenta: jest.fn(),
 						reenviarConfirmacion: jest.fn(),
 						solicitarRecuperacion: jest.fn(),
+						restablecerContrasena: jest.fn(),
 					},
 				},
 			],
@@ -90,5 +91,19 @@ describe('AuthController', () => {
 
 		expect(authService.solicitarRecuperacion).toHaveBeenCalledWith('vicente@mail.com');
 		expect(result).toEqual({ mensaje: 'Si el correo existe, se enviaron instrucciones' });
+	});
+
+	it('restablecerContrasena: delega en AuthService', async () => {
+		authService.restablecerContrasena.mockResolvedValue({
+			mensaje: 'Contraseña restablecida correctamente',
+		});
+
+		const result = await controller.restablecerContrasena({
+			token: 'token-123',
+			nuevaContrasena: 'Nueva1234',
+		});
+
+		expect(authService.restablecerContrasena).toHaveBeenCalledWith('token-123', 'Nueva1234');
+		expect(result).toEqual({ mensaje: 'Contraseña restablecida correctamente' });
 	});
 });

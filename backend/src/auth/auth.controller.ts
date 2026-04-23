@@ -5,6 +5,7 @@ import { RegisterDto } from './dtos/register.dto';
 import { ConfirmarCuentaDto } from './dtos/confirmar-cuenta.dto';
 import { ReenviarConfirmacionDto } from './dtos/reenviar-confirmacion.dto';
 import { SolicitarRecuperacionDto } from './dtos/solicitar-recuperacion.dto';
+import { RestablecerContrasenaDto } from './dtos/restablecer-contrasena.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -39,5 +40,13 @@ export class AuthController {
     @Post('solicitar-recuperacion')
     async solicitarRecuperacion(@Body() solicitarRecuperacionDto: SolicitarRecuperacionDto) {
         return this.authService.solicitarRecuperacion(solicitarRecuperacionDto.correo);
+    }
+
+    @Post('restablecer-contrasena')
+    async restablecerContrasena(@Body() restablecerContrasenaDto: RestablecerContrasenaDto) {
+        return this.authService.restablecerContrasena(
+            restablecerContrasenaDto.token,
+            restablecerContrasenaDto.nuevaContrasena,
+        );
     }
 }

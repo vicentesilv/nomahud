@@ -50,6 +50,7 @@ describe('AuthService', () => {
 						findByEmail: jest.fn(),
 						findById: jest.fn(),
 						marcarEmailVerificado: jest.fn(),
+						cambiarContrasena: jest.fn(),
 						createUsuario: jest.fn(),
 					},
 				},
@@ -442,5 +443,49 @@ describe('AuthService', () => {
 			}),
 		);
 		expect(result).toEqual({ mensaje: 'Si el correo existe, se enviaron instrucciones' });
+	});
+
+	it('restablecerContrasena: actualiza contraseña e invalida token', async () => {
+		const token = 'token-recuperacion';
+		const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+		const authToken = {
+			id: 50,
+			usuarioId: 99,
+			tipo: 'recuperacion_password',
+			tokenHash,
+			expiraEn: new Date(Date.now() + 60 * 60 * 1000),
+			usadoEn: null,
+		} as any;
+
+		authTokenRepository.findOne.mockResolvedValue(authToken);
+		(bcrypt.hash as jest.Mock).mockResolvedValue('nueva-contrasena-hash');
+		(usuariosService.cambiarContrasena as jest.Mock).mockResolvedValue(undefined);
+		authTokenRepository.save.mockResolvedValue({ ...authToken, usadoEn: new Date() } as any);
+
+		const result = await service.restablecerContrasena(token, 'Nueva1234');
+
+		expect(authTokenRepository.findOne).toHaveBeenCalledWith({
+			where: {
+				tokenHash,
+				tipo: 'recuperacion_password',
+			},
+		});
+		expect(bcrypt.hash).toHaveBeenCalledWith('Nueva1234', 10);
+		expect(usuariosService.cambiarContrasena).toHaveBeenCalledWith(99, 'nueva-contrasena-hash');
+		expect(authTokenRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				usadoEn: expect.any(Date),
+			}),
+		);
+		expect(result).toEqual({ mensaje: 'Contraseña restablecida correctamente' });
+	});
+
+	it('restablecerContrasena: lanza error si token no existe', async () => {
+		authTokenRepository.findOne.mockResolvedValue(null);
+
+		await expect(service.restablecerContrasena('token-invalido', 'Nueva1234')).rejects.toBeInstanceOf(
+			BadRequestException,
+		);
+		expect(usuariosService.cambiarContrasena).not.toHaveBeenCalled();
 	});
 });

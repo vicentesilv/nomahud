@@ -213,6 +213,42 @@ export class AuthService {
         return { mensaje };
     }
 
+    async restablecerContrasena(
+        token: string,
+        nuevaContrasena: string,
+    ): Promise<{ mensaje: string }> {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+        const authToken = await this.authTokenRepository.findOne({
+            where: {
+                tokenHash,
+                tipo: 'recuperacion_password',
+            },
+        });
+
+        if (!authToken) {
+            throw new BadRequestException('Token inválido o expirado');
+        }
+
+        if (authToken.usadoEn) {
+            throw new BadRequestException('Token ya utilizado');
+        }
+
+        if (authToken.expiraEn.getTime() < Date.now()) {
+            throw new BadRequestException('Token expirado');
+        }
+
+        const contrasenaHash = await bcrypt.hash(nuevaContrasena, 10);
+        await this.usuariosService.cambiarContrasena(authToken.usuarioId, contrasenaHash);
+
+        authToken.usadoEn = new Date();
+        await this.authTokenRepository.save(authToken);
+
+        return {
+            mensaje: 'Contraseña restablecida correctamente',
+        };
+    }
+
     private async sendEmailConfirmation(usuario: Usuario): Promise<void> {
         const token = crypto.randomBytes(32).toString('hex');
         const tokenHash = crypto.createHash('sha256').update(token).digest('hex');

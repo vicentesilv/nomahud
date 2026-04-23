@@ -75,6 +75,16 @@ export class UsuariosService {
 
         return usuarioSinContrasena as Usuario;
     }
+
+    async cambiarContrasena(id: number, contrasenaHash: string): Promise<void> {
+        const resultado = await this.usuariosRepository.update(id, {
+            contrasena: contrasenaHash,
+        });
+
+        if (!resultado.affected) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+    }
     
 
 }
