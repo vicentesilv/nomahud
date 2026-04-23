@@ -30,6 +30,7 @@ describe('AuthService', () => {
 	let mailService: jest.Mocked<MailService>;
 	let authTokenRepository: {
 		create: jest.Mock;
+		delete: jest.Mock;
 		findOne: jest.Mock;
 		save: jest.Mock;
 	};
@@ -64,6 +65,7 @@ describe('AuthService', () => {
 					provide: getRepositoryToken(AuthToken),
 					useValue: {
 						create: jest.fn(),
+						delete: jest.fn(),
 						findOne: jest.fn(),
 						save: jest.fn(),
 					},
@@ -487,5 +489,17 @@ describe('AuthService', () => {
 			BadRequestException,
 		);
 		expect(usuariosService.cambiarContrasena).not.toHaveBeenCalled();
+	});
+
+	it('cleanupExpiredTokens: elimina tokens expirados', async () => {
+		authTokenRepository.delete.mockResolvedValue({ affected: 3 });
+
+		await service.cleanupExpiredTokens();
+
+		expect(authTokenRepository.delete).toHaveBeenCalledWith(
+			expect.objectContaining({
+				expiraEn: expect.any(Object),
+			}),
+		);
 	});
 });

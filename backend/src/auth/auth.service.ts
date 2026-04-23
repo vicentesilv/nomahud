@@ -1,16 +1,23 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { AuthToken } from './entitys/auth-token.entity';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+    private readonly mailMetrics = {
+        enviados: 0,
+        fallidos: 0,
+    };
+
     constructor(
         private readonly jwtService: JwtService,
         private readonly usuariosService: UsuariosService,
@@ -127,6 +134,8 @@ export class AuthService {
         authToken.usadoEn = new Date();
         await this.authTokenRepository.save(authToken);
 
+        this.logger.log(`Cuenta confirmada para usuarioId=${authToken.usuarioId}`);
+
         return {
             mensaje: 'Cuenta confirmada correctamente',
         };
@@ -194,7 +203,7 @@ export class AuthService {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const enlaceRecuperacion = `${frontendUrl}/restablecer-contrasena?token=${token}`;
 
-        await this.mailService.sendMail(
+        await this.sendTransactionalEmail(
             usuario.correo,
             'Recuperación de contraseña',
             `
@@ -208,7 +217,11 @@ export class AuthService {
                 nombre: usuario.nombre,
                 enlaceRecuperacion,
             },
+            'recuperacion_solicitada',
+            usuario.id,
         );
+
+        this.logger.log(`Recuperación solicitada para usuarioId=${usuario.id}`);
 
         return { mensaje };
     }
@@ -244,9 +257,23 @@ export class AuthService {
         authToken.usadoEn = new Date();
         await this.authTokenRepository.save(authToken);
 
+        this.logger.log(`Contraseña restablecida para usuarioId=${authToken.usuarioId}`);
+
         return {
             mensaje: 'Contraseña restablecida correctamente',
         };
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    async cleanupExpiredTokens(): Promise<void> {
+        const resultado = await this.authTokenRepository.delete({
+            expiraEn: LessThan(new Date()),
+        });
+
+        const eliminados = resultado.affected ?? 0;
+        this.logger.log(
+            `Limpieza diaria de tokens expirados completada. Eliminados=${eliminados}. Correos enviados=${this.mailMetrics.enviados}, fallidos=${this.mailMetrics.fallidos}`,
+        );
     }
 
     private async sendEmailConfirmation(usuario: Usuario): Promise<void> {
@@ -266,7 +293,7 @@ export class AuthService {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const enlaceConfirmacion = `${frontendUrl}/confirmar-cuenta?token=${token}`;
 
-        await this.mailService.sendMail(
+        await this.sendTransactionalEmail(
             usuario.correo,
             'Confirma tu cuenta',
             `
@@ -280,7 +307,31 @@ export class AuthService {
                 nombre: usuario.nombre,
                 enlaceConfirmacion,
             },
+            'confirmacion_enviada',
+            usuario.id,
         );
+    }
+
+    private async sendTransactionalEmail(
+        to: string,
+        subject: string,
+        template: string,
+        context: Record<string, any>,
+        evento: 'confirmacion_enviada' | 'recuperacion_solicitada',
+        usuarioId?: number,
+    ): Promise<void> {
+        try {
+            await this.mailService.sendMail(to, subject, template, context);
+            this.mailMetrics.enviados += 1;
+            this.logger.log(`Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosEnviados=${this.mailMetrics.enviados}`);
+        } catch (error) {
+            this.mailMetrics.fallidos += 1;
+            this.logger.error(
+                `Fallo envío de correo. Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosFallidos=${this.mailMetrics.fallidos}`,
+                error instanceof Error ? error.stack : undefined,
+            );
+            throw error;
+        }
     }
  
 }
