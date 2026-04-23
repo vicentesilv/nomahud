@@ -2,6 +2,220 @@
 
 ---
 
+## 🧭 ORDEN RECOMENDADO DE EJECUCIÓN
+
+### Fase 1 — Base de autenticación (MVP)
+
+1. `10` Configurar variables de entorno para JWT
+2. `5` Inyectar UsuariosService en AuthService
+3. `1` Implementar `validatePassword` en AuthService
+4. `2` Implementar `generateToken` en AuthService
+5. `11` Crear método `createUsuario` en UsuariosService
+6. `12` Crear método `findByEmail` (incluyendo contraseña para login)
+7. `3` Implementar método `login` en AuthService
+8. `4` Implementar método `register` en AuthService
+9. `6` Implementar endpoint `POST /auth/inicio-sesion`
+10. `7` Implementar endpoint `POST /auth/registro`
+
+---
+
+### Fase 2 — JWT y protección de rutas
+
+11.`8` Configurar estrategia JWT (`JwtStrategy`)
+12.`9` Configurar `PassportModule` + `JwtModule` en `AuthModule`
+13.`13` Crear método `findById` en UsuariosService
+14.`16` Implementar `POST /usuarios` (público)
+15.`17` Implementar `GET /usuarios/:id`
+16.`18` Implementar `PATCH /usuarios/:id`
+17.`19` Implementar `DELETE /usuarios/:id`
+18.`22` Proteger endpoints con `JwtAuthGuard`
+
+---
+
+### Fase 3 — Integridad de datos y validaciones
+
+19.`21` Agregar validación de DTOs
+20.`23` Validar que no se cambie correo/fechaNacimiento en update
+21.`14` Fortalecer método `updateUsuario`
+22.`15` Fortalecer método `deleteUsuario`
+23.`20` Verificar hash de contraseñas en todo flujo
+
+---
+
+### Fase 4 — Funcionalidades con mail (confirmación/recuperación)
+
+24.`24` Configurar servicio de correo reutilizable
+25.`25` Agregar campos de verificación de cuenta en Usuario
+26.`26` Crear entidad de tokens de seguridad por email
+27.`27` Enviar mail de confirmación al registrarse
+28.`28` Endpoint `POST /auth/confirmar-cuenta`
+29.`29` Bloquear login si email no está verificado
+30.`30` Endpoint `POST /auth/reenviar-confirmacion`
+31.`31` Flujo `POST /auth/solicitar-recuperacion`
+32.`32` Flujo `POST /auth/restablecer-contrasena`
+33.`33` Limpieza de tokens expirados y auditoría
+
+---
+
+## 📧 FUNCIONALIDADES CON MAIL (CONFIRMACIÓN Y RECUPERACIÓN)
+
+### 24. Configurar servicio de correo reutilizable
+
+**Descripción:**
+Crea un servicio centralizado para envío de correos transaccionales (confirmación de cuenta, recuperación de contraseña, cambio de email). Debe aceptar destinatario, asunto, template y variables dinámicas.
+
+**Dónde:** `src/mail/mail.service.ts` **(NUEVO)**
+
+**Qué usar:**
+- `nodemailer` (ya instalado)
+- Variables de entorno SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`)
+- Método base:
+
+```typescript
+async sendMail(to: string, subject: string, template: string, context: Record<string, any>): Promise<void>
+```
+
+---
+
+### 25. Agregar campos de verificación de cuenta en Usuario
+
+**Descripción:**
+Extiende la entidad `Usuario` para soportar confirmación por email y control de estado. Esto permitirá bloquear login hasta confirmar cuenta.
+
+**Dónde:** `src/usuarios/entitys/usuarios.entity.ts`
+
+**Qué agregar:**
+- `emailVerificado: boolean` (default `false`)
+- `emailVerificadoAt?: Date`
+- `estadoCuenta: 'pendiente' | 'activa' | 'bloqueada'`
+
+---
+
+### 26. Crear entidad para tokens de seguridad por email
+
+**Descripción:**
+Crea una tabla dedicada para tokens de confirmación y recuperación. Debe guardar hash del token (no token plano), usuario, tipo, expiración y uso.
+
+**Dónde:** `src/auth/entitys/auth-token.entity.ts` **(NUEVO)**
+
+**Qué usar:**
+- Campos: `id`, `usuarioId`, `tipo`, `tokenHash`, `expiraEn`, `usadoEn`, `creadoEn`
+- Tipos: `confirmacion_email`, `recuperacion_password`
+
+---
+
+### 27. Implementar envío de mail de confirmación al registrarse
+
+**Descripción:**
+Al crear un usuario nuevo, genera token de confirmación, guarda hash en BD y envía enlace de activación por correo.
+
+**Dónde:** `src/auth/auth.service.ts` (flujo `register`)
+
+**Qué usar:**
+- `crypto.randomBytes()` para token
+- hash del token antes de guardar (`sha256` o bcrypt)
+- URL de frontend: `${FRONTEND_URL}/confirmar-cuenta?token=...`
+
+```typescript
+private async sendEmailConfirmation(usuario: Usuario): Promise<void>
+```
+
+---
+
+### 28. Crear endpoint de confirmación de cuenta
+
+**Descripción:**
+Endpoint público para confirmar cuenta con token. Valida token, revisa expiración, marca usuario como verificado y token como usado.
+
+**Dónde:** `src/auth/auth.controller.ts` y `src/auth/auth.service.ts`
+
+**Qué usar:**
+- `POST /auth/confirmar-cuenta`
+- Body DTO con `token`
+- Excepciones para token inválido/expirado/usado
+
+```typescript
+async confirmarCuenta(token: string): Promise<{ mensaje: string }>
+```
+
+---
+
+### 29. Bloquear login si el email no está verificado
+
+**Descripción:**
+Antes de generar JWT en login, valida que el usuario tenga `emailVerificado = true`. Si no, retorna error indicando que debe confirmar su cuenta.
+
+**Dónde:** `src/auth/auth.service.ts` (método `login`)
+
+**Qué usar:**
+- `UnauthorizedException('Debes confirmar tu cuenta antes de iniciar sesión')`
+
+---
+
+### 30. Crear endpoint para reenviar confirmación
+
+**Descripción:**
+Permite solicitar un nuevo correo de confirmación cuando el anterior expiró o no llegó.
+
+**Dónde:** `src/auth/auth.controller.ts` y `src/auth/auth.service.ts`
+
+**Qué usar:**
+- `POST /auth/reenviar-confirmacion`
+- DTO con `correo`
+- Límite de frecuencia (ej. 1 solicitud cada 60 segundos)
+
+---
+
+### 31. Crear flujo “olvidé mi contraseña”
+
+**Descripción:**
+Endpoint que recibe email, genera token de recuperación y envía mail con enlace para restablecer contraseña. Debe responder mensaje genérico para no filtrar si el correo existe o no.
+
+**Dónde:** `src/auth/auth.controller.ts` y `src/auth/auth.service.ts`
+
+**Qué usar:**
+- `POST /auth/solicitar-recuperacion`
+- DTO con `correo`
+- Respuesta segura: `Si el correo existe, se enviaron instrucciones`
+
+```typescript
+async solicitarRecuperacion(correo: string): Promise<{ mensaje: string }>
+```
+
+---
+
+### 32. Crear endpoint para restablecer contraseña
+
+**Descripción:**
+Valida token de recuperación y cambia contraseña por una nueva hasheada. Invalida token usado y opcionalmente revoca sesiones activas.
+
+**Dónde:** `src/auth/auth.controller.ts` y `src/auth/auth.service.ts`
+
+**Qué usar:**
+- `POST /auth/restablecer-contrasena`
+- DTO con `token` y `nuevaContrasena`
+- `bcrypt.hash(nuevaContrasena, 10)`
+
+```typescript
+async restablecerContrasena(token: string, nuevaContrasena: string): Promise<{ mensaje: string }>
+```
+
+---
+
+### 33. Agregar limpieza de tokens expirados y auditoría
+
+**Descripción:**
+Implementa limpieza periódica de tokens expirados y logs mínimos de eventos críticos (confirmación enviada, recuperación solicitada, contraseña restablecida).
+
+**Dónde:** `src/auth/auth.service.ts` o job dedicado en `src/common/jobs/`
+
+**Qué usar:**
+- Cron diario para limpieza
+- Logs sin exponer token ni contraseña
+- Métricas básicas (cantidad de correos enviados/fallidos)
+
+---
+
 ## 🔐 MÓDULO AUTH
 
 ### 1. Implementar método validatePassword en AuthService
@@ -440,11 +654,3 @@ if (updateUsuarioDto.correo || updateUsuarioDto.fechaNacimiento) {
 ```
 
 ---
-
-## ✅ Notas Importantes
-
-- Todas las librerías deben instalarse con `npm install`
-- Los archivos `.env` no deben commitirse a git
-- Las contraseñas siempre deben estar hasheadas
-- Los endpoints sin autenticación: `POST /auth/registro` y `POST /auth/inicio-sesion`
-- Todos los demás endpoints deben estar protegidos con `JwtAuthGuard`
