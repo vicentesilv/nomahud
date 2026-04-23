@@ -4,11 +4,10 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AuthToken } from './entitys/auth-token.entity';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class AuthService {
@@ -262,18 +261,6 @@ export class AuthService {
         return {
             mensaje: 'Contraseña restablecida correctamente',
         };
-    }
-
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-    async cleanupExpiredTokens(): Promise<void> {
-        const resultado = await this.authTokenRepository.delete({
-            expiraEn: LessThan(new Date()),
-        });
-
-        const eliminados = resultado.affected ?? 0;
-        this.logger.log(
-            `Limpieza diaria de tokens expirados completada. Eliminados=${eliminados}. Correos enviados=${this.mailMetrics.enviados}, fallidos=${this.mailMetrics.fallidos}`,
-        );
     }
 
     private async sendEmailConfirmation(usuario: Usuario): Promise<void> {
