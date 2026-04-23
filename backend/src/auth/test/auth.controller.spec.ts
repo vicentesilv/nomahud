@@ -17,6 +17,7 @@ describe('AuthController', () => {
 						register: jest.fn(),
 						confirmarCuenta: jest.fn(),
 						reenviarConfirmacion: jest.fn(),
+						solicitarRecuperacion: jest.fn(),
 					},
 				},
 			],
@@ -78,5 +79,16 @@ describe('AuthController', () => {
 
 		expect(authService.reenviarConfirmacion).toHaveBeenCalledWith('vicente@mail.com');
 		expect(result).toEqual({ mensaje: 'Correo de confirmación reenviado correctamente' });
+	});
+
+	it('solicitarRecuperacion: delega en AuthService', async () => {
+		authService.solicitarRecuperacion.mockResolvedValue({
+			mensaje: 'Si el correo existe, se enviaron instrucciones',
+		});
+
+		const result = await controller.solicitarRecuperacion({ correo: 'vicente@mail.com' });
+
+		expect(authService.solicitarRecuperacion).toHaveBeenCalledWith('vicente@mail.com');
+		expect(result).toEqual({ mensaje: 'Si el correo existe, se enviaron instrucciones' });
 	});
 });

@@ -393,4 +393,54 @@ describe('AuthService', () => {
 		);
 		expect(mailService.sendMail).not.toHaveBeenCalled();
 	});
+
+	it('solicitarRecuperacion: responde mensaje genérico si usuario no existe', async () => {
+		usuariosService.findByEmail.mockResolvedValue(null);
+
+		const result = await service.solicitarRecuperacion('noexiste@mail.com');
+
+		expect(result).toEqual({ mensaje: 'Si el correo existe, se enviaron instrucciones' });
+		expect(authTokenRepository.create).not.toHaveBeenCalled();
+		expect(mailService.sendMail).not.toHaveBeenCalled();
+	});
+
+	it('solicitarRecuperacion: genera token y envía correo si usuario existe', async () => {
+		const usuario = {
+			id: 99,
+			nombre: 'Vicente',
+			correo: 'vicente@mail.com',
+		} as any;
+
+		(crypto.randomBytes as jest.Mock).mockReturnValue(Buffer.from('token-recuperacion'));
+		const recoveryToken = Buffer.from('token-recuperacion').toString('hex');
+		const expectedTokenHash = crypto.createHash('sha256').update(recoveryToken).digest('hex');
+
+		usuariosService.findByEmail.mockResolvedValue(usuario);
+		authTokenRepository.create.mockReturnValue({ id: 15 } as any);
+		authTokenRepository.save.mockResolvedValue({ id: 15 } as any);
+		(mailService.sendMail as jest.Mock).mockResolvedValue(undefined);
+		process.env.FRONTEND_URL = 'http://frontend.test';
+
+		const result = await service.solicitarRecuperacion('vicente@mail.com');
+
+		expect(authTokenRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				usuarioId: 99,
+				tipo: 'recuperacion_password',
+				tokenHash: expectedTokenHash,
+				expiraEn: expect.any(Date),
+			}),
+		);
+		expect(authTokenRepository.save).toHaveBeenCalled();
+		expect(mailService.sendMail).toHaveBeenCalledWith(
+			'vicente@mail.com',
+			'Recuperación de contraseña',
+			expect.stringContaining('Recuperación de contraseña'),
+			expect.objectContaining({
+				nombre: 'Vicente',
+				enlaceRecuperacion: `http://frontend.test/restablecer-contrasena?token=${recoveryToken}`,
+			}),
+		);
+		expect(result).toEqual({ mensaje: 'Si el correo existe, se enviaron instrucciones' });
+	});
 });

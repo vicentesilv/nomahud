@@ -4,6 +4,7 @@ import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/register.dto';
 import { ConfirmarCuentaDto } from './dtos/confirmar-cuenta.dto';
 import { ReenviarConfirmacionDto } from './dtos/reenviar-confirmacion.dto';
+import { SolicitarRecuperacionDto } from './dtos/solicitar-recuperacion.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -33,5 +34,10 @@ export class AuthController {
     @Post('reenviar-confirmacion')
     async reenviarConfirmacion(@Body() reenviarConfirmacionDto: ReenviarConfirmacionDto) {
         return this.authService.reenviarConfirmacion(reenviarConfirmacionDto.correo);
+    }
+
+    @Post('solicitar-recuperacion')
+    async solicitarRecuperacion(@Body() solicitarRecuperacionDto: SolicitarRecuperacionDto) {
+        return this.authService.solicitarRecuperacion(solicitarRecuperacionDto.correo);
     }
 }

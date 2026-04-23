@@ -170,6 +170,49 @@ export class AuthService {
         };
     }
 
+    async solicitarRecuperacion(correo: string): Promise<{ mensaje: string }> {
+        const mensaje = 'Si el correo existe, se enviaron instrucciones';
+        const usuario = await this.usuariosService.findByEmail(correo);
+
+        if (!usuario) {
+            return { mensaje };
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
+
+        await this.authTokenRepository.save(
+            this.authTokenRepository.create({
+                usuarioId: usuario.id,
+                tipo: 'recuperacion_password',
+                tokenHash,
+                expiraEn,
+            }),
+        );
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const enlaceRecuperacion = `${frontendUrl}/restablecer-contrasena?token=${token}`;
+
+        await this.mailService.sendMail(
+            usuario.correo,
+            'Recuperación de contraseña',
+            `
+                <h1>Recuperación de contraseña</h1>
+                <p>Hola {{nombre}}, recibimos una solicitud para restablecer tu contraseña.</p>
+                <p>Haz clic en el siguiente enlace para continuar:</p>
+                <p><a href="{{enlaceRecuperacion}}">Restablecer contraseña</a></p>
+                <p>Este enlace vence en 1 hora.</p>
+            `,
+            {
+                nombre: usuario.nombre,
+                enlaceRecuperacion,
+            },
+        );
+
+        return { mensaje };
+    }
+
     private async sendEmailConfirmation(usuario: Usuario): Promise<void> {
         const token = crypto.randomBytes(32).toString('hex');
         const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
