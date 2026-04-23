@@ -57,6 +57,10 @@ export class AuthService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
+        if (!usuarioConContrasena.emailVerificado) {
+            throw new UnauthorizedException('Debes confirmar tu cuenta antes de iniciar sesión');
+        }
+
         const { contrasena: _, ...usuarioSinContrasena } = usuarioConContrasena;
         const token = this.generateToken(usuarioSinContrasena.id, usuarioSinContrasena.correo);
 

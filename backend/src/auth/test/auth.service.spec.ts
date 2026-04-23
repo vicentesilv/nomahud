@@ -130,6 +130,7 @@ describe('AuthService', () => {
 			nombre: 'Vicente',
 			correo: 'vicente@mail.com',
 			contrasena: 'hashed-password',
+			emailVerificado: true,
 			ciudad: 'Santiago',
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any;
@@ -149,6 +150,7 @@ describe('AuthService', () => {
 				id: 10,
 				nombre: 'Vicente',
 				correo: 'vicente@mail.com',
+				emailVerificado: true,
 				ciudad: 'Santiago',
 				fechaNacimiento: new Date('2000-01-01'),
 			},
@@ -184,6 +186,7 @@ describe('AuthService', () => {
 			correo: 'vicente@mail.com',
 			nombre: 'Vicente',
 			contrasena: 'hashed-password',
+			emailVerificado: true,
 			ciudad: 'Santiago',
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any);
@@ -192,6 +195,24 @@ describe('AuthService', () => {
 		await expect(service.login('vicente@mail.com', 'bad-password')).rejects.toBeInstanceOf(
 			UnauthorizedException,
 		);
+	});
+
+	it('login: bloquea acceso si el email no está verificado', async () => {
+		usuariosService.findByEmail.mockResolvedValue({
+			id: 1,
+			correo: 'vicente@mail.com',
+			nombre: 'Vicente',
+			contrasena: 'hashed-password',
+			emailVerificado: false,
+			ciudad: 'Santiago',
+			fechaNacimiento: new Date('2000-01-01'),
+		} as any);
+		(bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+		await expect(service.login('vicente@mail.com', '12345678')).rejects.toThrow(
+			'Debes confirmar tu cuenta antes de iniciar sesión',
+		);
+		expect(jwtService.sign).not.toHaveBeenCalled();
 	});
 
 	it('register: crea usuario con contrasena hasheada', async () => {
