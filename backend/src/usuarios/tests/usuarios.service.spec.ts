@@ -46,6 +46,9 @@ describe('UsuariosService', () => {
       contrasena: dto.contrasena,
       ciudad: dto.ciudad ?? '',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
 
     repo.create.mockReturnValue(usuarioCreado);
@@ -61,6 +64,9 @@ describe('UsuariosService', () => {
       correo: 'vicente@mail.com',
       ciudad: 'Santiago',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     });
     expect((result as any).contrasena).toBeUndefined();
   });
@@ -113,6 +119,9 @@ describe('UsuariosService', () => {
       contrasena: '12345678',
       ciudad: 'Ciudad Inicial',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
 
     const dto: UpdateUsuarioDto = {
@@ -145,6 +154,9 @@ describe('UsuariosService', () => {
       correo: 'usuario@mail.com',
       ciudad: 'Ciudad Nueva',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     });
     expect((result as any).contrasena).toBeUndefined();
   });
@@ -165,6 +177,9 @@ describe('UsuariosService', () => {
       contrasena: '12345678',
       ciudad: 'Ciudad Inicial',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
 
     repo.findOne.mockResolvedValue(usuarioExistente);
@@ -186,6 +201,9 @@ describe('UsuariosService', () => {
       contrasena: '12345678',
       ciudad: 'Ciudad',
       fechaNacimiento: new Date('2000-01-01'),
+      emailVerificado: false,
+      emailVerificadoAt: null,
+      estadoCuenta: 'pendiente',
     };
     
     repo.findOne.mockResolvedValue(usuarioExistente);
