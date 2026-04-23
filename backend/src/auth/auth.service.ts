@@ -42,7 +42,7 @@ export class AuthService {
     }
 
     async login(correo: string, contrasena: string): Promise<{ token: string; usuario: any }> {
-        const usuario = await this.usuariosService.findByEmail(correo);
+        const usuario = await this.usuariosService.findByEmailWithPassword(correo);
 
         if (!usuario) {
             throw new UnauthorizedException('Credenciales inválidas');

@@ -29,6 +29,14 @@ export class UsuariosService {
         });
     }
 
+    async findByEmailWithPassword(correo: string): Promise<Usuario | null> {
+        return this.usuariosRepository
+            .createQueryBuilder('usuario')
+            .addSelect('usuario.contrasena')
+            .where('usuario.correo = :correo', { correo })
+            .getOne();
+    }
+
     async findById(id: number): Promise<Usuario | null> {
         return this.usuariosRepository.findOne({
             where: { id },

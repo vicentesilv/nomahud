@@ -48,6 +48,7 @@ describe('AuthService', () => {
 					provide: UsuariosService,
 					useValue: {
 						findByEmail: jest.fn(),
+						findByEmailWithPassword: jest.fn(),
 						findById: jest.fn(),
 						marcarEmailVerificado: jest.fn(),
 						cambiarContrasena: jest.fn(),
@@ -136,13 +137,13 @@ describe('AuthService', () => {
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any;
 
-		usuariosService.findByEmail.mockResolvedValue(usuario);
+		usuariosService.findByEmailWithPassword.mockResolvedValue(usuario);
 		(bcrypt.compare as jest.Mock).mockResolvedValue(true);
 		jwtService.sign.mockReturnValue('jwt-token');
 
 		const result = await service.login('vicente@mail.com', '12345678');
 
-		expect(usuariosService.findByEmail).toHaveBeenCalledWith('vicente@mail.com');
+		expect(usuariosService.findByEmailWithPassword).toHaveBeenCalledWith('vicente@mail.com');
 		expect(bcrypt.compare).toHaveBeenCalledWith('12345678', 'hashed-password');
 		expect(jwtService.sign).toHaveBeenCalled();
 		expect(result).toEqual({
@@ -160,7 +161,7 @@ describe('AuthService', () => {
 	});
 
 	it('login: lanza UnauthorizedException si usuario no existe', async () => {
-		usuariosService.findByEmail.mockResolvedValue(null);
+		usuariosService.findByEmailWithPassword.mockResolvedValue(null);
 
 		await expect(service.login('noexiste@mail.com', '12345678')).rejects.toBeInstanceOf(
 			UnauthorizedException,
@@ -168,7 +169,7 @@ describe('AuthService', () => {
 	});
 
 	it('login: lanza UnauthorizedException si usuario no trae contrasena', async () => {
-		usuariosService.findByEmail.mockResolvedValue({
+		usuariosService.findByEmailWithPassword.mockResolvedValue({
 			id: 1,
 			correo: 'vicente@mail.com',
 			nombre: 'Vicente',
@@ -182,7 +183,7 @@ describe('AuthService', () => {
 	});
 
 	it('login: lanza UnauthorizedException si contrasena es incorrecta', async () => {
-		usuariosService.findByEmail.mockResolvedValue({
+		usuariosService.findByEmailWithPassword.mockResolvedValue({
 			id: 1,
 			correo: 'vicente@mail.com',
 			nombre: 'Vicente',
@@ -199,7 +200,7 @@ describe('AuthService', () => {
 	});
 
 	it('login: bloquea acceso si el email no está verificado', async () => {
-		usuariosService.findByEmail.mockResolvedValue({
+		usuariosService.findByEmailWithPassword.mockResolvedValue({
 			id: 1,
 			correo: 'vicente@mail.com',
 			nombre: 'Vicente',
