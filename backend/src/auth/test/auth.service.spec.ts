@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { AuthService } from '../auth.service';
 import { UsuariosService } from '../../usuarios/usuarios.service';
+import { PerfilesService } from '../../perfiles/perfiles.service';
 import { MailService } from '../../mail/mail.service';
 import { AuthToken } from '../entitys/auth-token.entity';
 
@@ -53,6 +54,12 @@ describe('AuthService', () => {
 						marcarEmailVerificado: jest.fn(),
 						cambiarContrasena: jest.fn(),
 						createUsuario: jest.fn(),
+					},
+				},
+				{
+					provide: PerfilesService,
+					useValue: {
+						findOrCreate: jest.fn(),
 					},
 				},
 				{
@@ -133,6 +140,7 @@ describe('AuthService', () => {
 			correo: 'vicente@mail.com',
 			contrasena: 'hashed-password',
 			emailVerificado: true,
+			estadoCuenta: 'activa',
 			ciudad: 'Santiago',
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any;
@@ -153,6 +161,7 @@ describe('AuthService', () => {
 				nombre: 'Vicente',
 				correo: 'vicente@mail.com',
 				emailVerificado: true,
+				estadoCuenta: 'activa',
 				ciudad: 'Santiago',
 				fechaNacimiento: new Date('2000-01-01'),
 			},
@@ -189,6 +198,7 @@ describe('AuthService', () => {
 			nombre: 'Vicente',
 			contrasena: 'hashed-password',
 			emailVerificado: true,
+			estadoCuenta: 'activa',
 			ciudad: 'Santiago',
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any);
@@ -206,6 +216,26 @@ describe('AuthService', () => {
 			nombre: 'Vicente',
 			contrasena: 'hashed-password',
 			emailVerificado: false,
+			estadoCuenta: 'pendiente',
+			ciudad: 'Santiago',
+			fechaNacimiento: new Date('2000-01-01'),
+		} as any);
+		(bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+		await expect(service.login('vicente@mail.com', '12345678')).rejects.toThrow(
+			'Debes confirmar tu cuenta antes de iniciar sesión',
+		);
+		expect(jwtService.sign).not.toHaveBeenCalled();
+	});
+
+	it('login: bloquea acceso si el estado de cuenta es pendiente', async () => {
+		usuariosService.findByEmailWithPassword.mockResolvedValue({
+			id: 1,
+			correo: 'vicente@mail.com',
+			nombre: 'Vicente',
+			contrasena: 'hashed-password',
+			emailVerificado: true,
+			estadoCuenta: 'pendiente',
 			ciudad: 'Santiago',
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any);

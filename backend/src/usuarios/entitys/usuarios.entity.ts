@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Perfil } from "../../perfiles/entities/perfil.entity";
 
 export type EstadoCuenta = 'pendiente' | 'activa' | 'bloqueada';
 
@@ -19,8 +20,8 @@ export class Usuario {
     @Column({ type: 'varchar', length: 255, nullable: true })
     ciudad: string;
 
-    @Column({ type: 'date' })
-    fechaNacimiento: Date;
+    @Column({ type: 'date', nullable: true })
+    fechaNacimiento?: Date;
 
     @Column({ type: 'boolean', default: false })
     emailVerificado: boolean;
@@ -35,5 +36,7 @@ export class Usuario {
     })
     estadoCuenta: EstadoCuenta;
 
+    @OneToOne(() => Perfil, (perfil) => perfil.usuario)
+    perfil?: Perfil;
 
 }

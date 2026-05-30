@@ -9,6 +9,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthToken } from './entitys/auth-token.entity';
 import { MailModule } from '../mail/mail.module';
+import { PerfilesModule } from '../perfiles/perfiles.module';
 import { AuthTokensCleanupJob } from '../common/jobs/auth-tokens-cleanup.job';
 
 @Module({
@@ -22,6 +23,7 @@ import { AuthTokensCleanupJob } from '../common/jobs/auth-tokens-cleanup.job';
     }),
     UsuariosModule,
     MailModule,
+    PerfilesModule,
     TypeOrmModule.forFeature([AuthToken]),
   ],
   providers: [AuthService, JwtAuthGuard, JwtStrategy, AuthTokensCleanupJob],

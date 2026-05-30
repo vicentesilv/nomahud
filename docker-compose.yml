@@ -8,6 +8,7 @@ services:
       - '3000:3000'
     environment:
       NODE_ENV: development
+      VITE_API_URL: http://app:3000
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
@@ -32,6 +33,14 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: ${DB_PASSWORD?DB_PASSWORD is required}
       DB_NAME: ${DB_NAME?DB_NAME is required}
+      JWT_SECRET: nomahud-secret-dev-2026
+      JWT_EXPIRES_IN: 24h
+      FRONTEND_URL: http://localhost:3000
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: vicente18aldahirsilva@gmail.com
+      SMTP_PASS: wquylczkstewwlxc
+      MAIL_FROM: vicente18aldahirsilva@gmail.com
     volumes:
       - ./backend:/usr/src/app
       - backend-node-modules:/usr/src/app/node_modules
@@ -60,6 +69,16 @@ services:
       timeout: 3s
       retries: 10
       start_period: 30s
+
+  maildev:
+    image: maildev/maildev:latest
+    container_name: maildev
+    restart: unless-stopped
+    ports:
+      - '1080:1080'
+      - '1025:1025'
+    networks:
+      - app-network
 
 volumes:
   mysql-data:

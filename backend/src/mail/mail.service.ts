@@ -7,15 +7,17 @@ type MailContext = Record<string, any>;
 export class MailService {
     private readonly logger = new Logger(MailService.name);
 
-    private readonly transporter = nodemailer.createTransport({
-        host: this.getEnv('SMTP_HOST') ?? this.getEnv('EMAIL_HOST'),
-        port: Number(this.getEnv('SMTP_PORT') ?? this.getEnv('EMAIL_PORT') ?? 587),
-        secure: false,
-        auth: {
-            user: this.getEnv('SMTP_USER') ?? this.getEnv('EMAIL_USER'),
-            pass: this.getEnv('SMTP_PASS') ?? this.getEnv('EMAIL_PASSWORD'),
-        },
-    });
+    private readonly transporter = (() => {
+        const smtpUser = this.getEnv('SMTP_USER') ?? this.getEnv('EMAIL_USER');
+        const smtpPass = this.getEnv('SMTP_PASS') ?? this.getEnv('EMAIL_PASSWORD');
+
+        return nodemailer.createTransport({
+            host: this.getEnv('SMTP_HOST') ?? this.getEnv('EMAIL_HOST'),
+            port: Number(this.getEnv('SMTP_PORT') ?? this.getEnv('EMAIL_PORT') ?? 587),
+            secure: false,
+            ...(smtpUser ? { auth: { user: smtpUser, pass: smtpPass ?? '' } } : {}),
+        });
+    })();
 
     async sendMail(
         to: string,

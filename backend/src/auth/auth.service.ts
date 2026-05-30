@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsuariosService } from '../usuarios/usuarios.service';
+import { PerfilesService } from '../perfiles/perfiles.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
@@ -20,6 +21,7 @@ export class AuthService {
     constructor(
         private readonly jwtService: JwtService,
         private readonly usuariosService: UsuariosService,
+        private readonly perfilesService: PerfilesService,
         private readonly mailService: MailService,
         @InjectRepository(AuthToken)
         private readonly authTokenRepository: Repository<AuthToken>,
@@ -63,7 +65,7 @@ export class AuthService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
-        if (!usuarioConContrasena.emailVerificado) {
+        if (!usuarioConContrasena.emailVerificado || usuarioConContrasena.estadoCuenta !== 'activa') {
             throw new UnauthorizedException('Debes confirmar tu cuenta antes de iniciar sesión');
         }
 
@@ -100,6 +102,12 @@ export class AuthService {
         });
 
         await this.sendEmailConfirmation(usuarioCreado as Usuario);
+        if (!process.env.SMTP_HOST && process.env.NODE_ENV === 'development') {
+            this.logger.warn('SMTP no configurado: auto-confirmando cuenta en modo desarrollo');
+            await this.usuariosService.marcarEmailVerificado(usuarioCreado.id);
+        }
+
+        await this.perfilesService.findOrCreate(usuarioCreado.id);
 
         return {
             usuario: usuarioCreado,
@@ -178,7 +186,7 @@ export class AuthService {
         };
     }
 
-    async solicitarRecuperacion(correo: string): Promise<{ mensaje: string }> {
+    async solicitarRecuperacion(correo: string): Promise<{ mensaje: string; enlace?: string }> {
         const mensaje = 'Si el correo existe, se enviaron instrucciones';
         const usuario = await this.usuariosService.findByEmail(correo);
 
@@ -313,11 +321,9 @@ export class AuthService {
             this.logger.log(`Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosEnviados=${this.mailMetrics.enviados}`);
         } catch (error) {
             this.mailMetrics.fallidos += 1;
-            this.logger.error(
-                `Fallo envío de correo. Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosFallidos=${this.mailMetrics.fallidos}`,
-                error instanceof Error ? error.stack : undefined,
+            this.logger.warn(
+                `Fallo envío de correo (modo dev). Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosFallidos=${this.mailMetrics.fallidos}`,
             );
-            throw error;
         }
     }
  
