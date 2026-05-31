@@ -2,6 +2,17 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
+function safeDate(raw: string): string {
+  if (!raw) return '';
+  try {
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return '';
+  }
+}
+
 export default function NuevoViaje() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -30,10 +41,14 @@ export default function NuevoViaje() {
       setError('La fecha de inicio es obligatoria');
       return;
     }
+    if (form.fechaFin && form.fechaInicio > form.fechaFin) {
+      setError('La fecha de inicio no puede ser posterior a la fecha de fin.');
+      return;
+    }
 
     try {
-      const body: any = { destino: form.destino, fechaInicio: new Date(form.fechaInicio).toISOString().slice(0, 10) };
-      if (form.fechaFin) body.fechaFin = new Date(form.fechaFin).toISOString().slice(0, 10);
+      const body: any = { destino: form.destino, fechaInicio: safeDate(form.fechaInicio) };
+      if (form.fechaFin) body.fechaFin = safeDate(form.fechaFin);
       if (form.presupuesto) body.presupuesto = Number(form.presupuesto);
       if (form.moneda !== 'MXN') body.moneda = form.moneda;
       if (form.notas) body.notas = form.notas;
@@ -66,7 +81,7 @@ export default function NuevoViaje() {
           </div>
           <div className="field">
             <label>Fecha de fin</label>
-            <input name="fechaFin" type="date" value={form.fechaFin} onChange={handleChange} />
+            <input name="fechaFin" type="date" value={form.fechaFin} onChange={handleChange} min={form.fechaInicio || undefined} />
           </div>
         </div>
 

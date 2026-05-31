@@ -31,6 +31,17 @@ const badges: Record<string, { label: string; color: string }> = {
   cancelado: { label: 'Cancelado', color: '#ef4444' },
 };
 
+function safeDate(raw: string): string {
+  if (!raw) return '';
+  try {
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return '';
+  }
+}
+
 export default function DetalleViaje() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -41,6 +52,7 @@ export default function DetalleViaje() {
     presupuesto: '', moneda: 'MXN', notas: '',
   });
   const [msg, setMsg] = useState('');
+  const [itemError, setItemError] = useState('');
   const [itemForm, setItemForm] = useState({ lugar: '', fecha: '', descripcion: '', costo: '' });
   const [editItemId, setEditItemId] = useState<number | null>(null);
 
@@ -65,11 +77,15 @@ export default function DetalleViaje() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setMsg('');
+    if (form.fechaFin && form.fechaInicio > form.fechaFin) {
+      setMsg('La fecha de inicio no puede ser posterior a la fecha de fin.');
+      return;
+    }
     try {
       const body: any = {};
       if (form.destino) body.destino = form.destino;
-      if (form.fechaInicio) body.fechaInicio = new Date(form.fechaInicio).toISOString().slice(0, 10);
-      if (form.fechaFin) body.fechaFin = new Date(form.fechaFin).toISOString().slice(0, 10);
+      if (form.fechaInicio) body.fechaInicio = safeDate(form.fechaInicio);
+      if (form.fechaFin) body.fechaFin = safeDate(form.fechaFin);
       if (form.estado) body.estado = form.estado;
       if (form.presupuesto) body.presupuesto = Number(form.presupuesto);
       if (form.moneda !== 'MXN') body.moneda = form.moneda;
@@ -85,10 +101,13 @@ export default function DetalleViaje() {
   };
 
   const actualizarEstado = async (nuevoEstado: string) => {
+    setMsg('');
     try {
       const { data } = await api.patch(`/viajes/${id}`, { estado: nuevoEstado });
       setViaje(data);
-    } catch {}
+    } catch (err: any) {
+      setMsg(err.response?.data?.message || 'Error al cambiar estado');
+    }
   };
 
   const eliminar = async () => {
@@ -101,17 +120,20 @@ export default function DetalleViaje() {
 
   const agregarItem = async (e: FormEvent) => {
     e.preventDefault();
+    setItemError('');
     if (!itemForm.lugar.trim()) return;
     try {
       const body: any = { lugar: itemForm.lugar };
-      if (itemForm.fecha) body.fecha = new Date(itemForm.fecha).toISOString().slice(0, 10);
+      if (itemForm.fecha) body.fecha = safeDate(itemForm.fecha);
       if (itemForm.descripcion) body.descripcion = itemForm.descripcion;
       if (itemForm.costo) body.costo = Number(itemForm.costo);
 
       await api.post(`/viajes/${id}/itinerario`, body);
       setItemForm({ lugar: '', fecha: '', descripcion: '', costo: '' });
       cargarViaje();
-    } catch {}
+    } catch (err: any) {
+      setItemError(err.response?.data?.message || 'Error al agregar lugar');
+    }
   };
 
   const eliminarItem = async (itemId: number) => {
@@ -123,10 +145,11 @@ export default function DetalleViaje() {
   };
 
   const guardarItemEdit = async (itemId: number) => {
+    setItemError('');
     try {
       const body: any = {};
       if (itemForm.lugar) body.lugar = itemForm.lugar;
-      if (itemForm.fecha) body.fecha = new Date(itemForm.fecha).toISOString().slice(0, 10);
+      if (itemForm.fecha) body.fecha = safeDate(itemForm.fecha);
       if (itemForm.descripcion !== undefined) body.descripcion = itemForm.descripcion;
       if (itemForm.costo) body.costo = Number(itemForm.costo);
 
@@ -134,7 +157,9 @@ export default function DetalleViaje() {
       setEditItemId(null);
       setItemForm({ lugar: '', fecha: '', descripcion: '', costo: '' });
       cargarViaje();
-    } catch {}
+    } catch (err: any) {
+      setItemError(err.response?.data?.message || 'Error al guardar');
+    }
   };
 
   const iniciarEditItem = (item: ItinerarioItem) => {
@@ -200,6 +225,8 @@ export default function DetalleViaje() {
 
           <div className="perfil-section">
             <h3>◈ Itinerario</h3>
+
+            {itemError && <div className="error-msg">{itemError}</div>}
 
             <form onSubmit={agregarItem} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
               <div className="field-row">
@@ -306,7 +333,7 @@ export default function DetalleViaje() {
             </div>
             <div className="field">
               <label>Fecha de fin</label>
-              <input name="fechaFin" type="date" value={form.fechaFin} onChange={(e) => setForm({ ...form, fechaFin: e.target.value })} />
+              <input name="fechaFin" type="date" value={form.fechaFin} onChange={(e) => setForm({ ...form, fechaFin: e.target.value })} min={form.fechaInicio || undefined} />
             </div>
           </div>
           <div className="field-row">

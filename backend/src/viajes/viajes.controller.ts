@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGua
 import { ViajesService } from './viajes.service';
 import { CrearViajeDto } from './dtos/crear-viaje.dto';
 import { ActualizarViajeDto } from './dtos/actualizar-viaje.dto';
+import { CrearItinerarioItemDto } from './dtos/crear-itinerario-item.dto';
+import { ActualizarItinerarioItemDto } from './dtos/actualizar-itinerario-item.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { User } from '../common/decorators/user.decorator';
@@ -41,9 +43,9 @@ export class ViajesController {
     async createItinerarioItem(
         @User() usuario: Usuario,
         @Param('viajeId', ParseIntPipe) viajeId: number,
-        @Body() body: { lugar: string; fecha?: string; descripcion?: string; costo?: number; orden?: number },
+        @Body() dto: CrearItinerarioItemDto,
     ) {
-        return this.viajesService.createItinerarioItem(viajeId, usuario.id, body);
+        return this.viajesService.createItinerarioItem(viajeId, usuario.id, dto);
     }
 
     @Patch(':viajeId/itinerario/:itemId')
@@ -51,9 +53,9 @@ export class ViajesController {
         @User() usuario: Usuario,
         @Param('viajeId', ParseIntPipe) viajeId: number,
         @Param('itemId', ParseIntPipe) itemId: number,
-        @Body() body: { lugar?: string; fecha?: string; descripcion?: string; costo?: number; orden?: number },
+        @Body() dto: ActualizarItinerarioItemDto,
     ) {
-        return this.viajesService.updateItinerarioItem(itemId, viajeId, usuario.id, body);
+        return this.viajesService.updateItinerarioItem(itemId, viajeId, usuario.id, dto);
     }
 
     @Delete(':viajeId/itinerario/:itemId')
