@@ -21,6 +21,7 @@ import NuevoRegistroTiempo from './pages/tiempo/NuevoRegistroTiempo';
 import ListaViajes from './pages/viajes/ListaViajes';
 import NuevoViaje from './pages/viajes/NuevoViaje';
 import DetalleViaje from './pages/viajes/DetalleViaje';
+import ListaDocumentos from './pages/documentos/ListaDocumentos';
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/viajes" element={<ListaViajes />} />
               <Route path="/viajes/nuevo" element={<NuevoViaje />} />
               <Route path="/viajes/:id" element={<DetalleViaje />} />
+              <Route path="/documentos" element={<ListaDocumentos />} />
             </Route>
           </Route>
           <Route path="*" element={<Login />} />

@@ -13,6 +13,7 @@ import { ClientesModule } from './clientes/clientes.module';
 import { FinanzasModule } from './finanzas/finanzas.module';
 import { TiempoModule } from './tiempo/tiempo.module';
 import { ViajesModule } from './viajes/viajes.module';
+import { DocumentosModule } from './documentos/documentos.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -46,6 +47,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     FinanzasModule,
     TiempoModule,
     ViajesModule,
+    DocumentosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
