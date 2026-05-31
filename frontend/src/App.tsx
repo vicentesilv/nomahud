@@ -16,6 +16,11 @@ import NuevoCliente from './pages/clientes/NuevoCliente';
 import DetalleCliente from './pages/clientes/DetalleCliente';
 import ListaFinanzas from './pages/finanzas/ListaFinanzas';
 import NuevaTransaccion from './pages/finanzas/NuevaTransaccion';
+import ListaTiempo from './pages/tiempo/ListaTiempo';
+import NuevoRegistroTiempo from './pages/tiempo/NuevoRegistroTiempo';
+import ListaViajes from './pages/viajes/ListaViajes';
+import NuevoViaje from './pages/viajes/NuevoViaje';
+import DetalleViaje from './pages/viajes/DetalleViaje';
 
 export default function App() {
   return (
@@ -38,6 +43,11 @@ export default function App() {
               <Route path="/clientes/:id" element={<DetalleCliente />} />
               <Route path="/finanzas" element={<ListaFinanzas />} />
               <Route path="/finanzas/nuevo" element={<NuevaTransaccion />} />
+              <Route path="/tiempo" element={<ListaTiempo />} />
+              <Route path="/tiempo/nuevo" element={<NuevoRegistroTiempo />} />
+              <Route path="/viajes" element={<ListaViajes />} />
+              <Route path="/viajes/nuevo" element={<NuevoViaje />} />
+              <Route path="/viajes/:id" element={<DetalleViaje />} />
             </Route>
           </Route>
           <Route path="*" element={<Login />} />

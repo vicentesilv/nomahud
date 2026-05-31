@@ -36,6 +36,9 @@ export class Tarea {
     @Column({ type: 'int', nullable: true })
     estimacionHoras: number;
 
+    @Column({ type: 'boolean', default: false })
+    autoTiempoRegistrado: boolean;
+
     @Column({ type: 'int' })
     proyectoId: number;
 
