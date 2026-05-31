@@ -664,6 +664,44 @@ body {
 }
 
 /* ===== RESPONSIVE ===== */
+/* ===== OFFICE PREVIEW ===== */
+.office-preview {
+  width: 100%;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.office-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+.office-preview table td,
+.office-preview table th {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+}
+.office-preview table th {
+  background: rgba(255,255,255,0.05);
+  font-weight: 600;
+}
+.office-preview h1,
+.office-preview h2,
+.office-preview h3,
+.office-preview h4 {
+  color: var(--accent);
+  margin: 1rem 0 0.5rem;
+}
+.office-preview p {
+  margin: 0.5rem 0;
+}
+.office-preview img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: 100%;

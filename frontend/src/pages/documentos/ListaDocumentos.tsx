@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import api from '../../services/api';
+import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
 interface Documento {
   id: number;
@@ -98,6 +100,72 @@ export default function ListaDocumentos() {
     }
   };
 
+  const [visorDoc, setVisorDoc] = useState<Documento | null>(null);
+  const [visorUrl, setVisorUrl] = useState<string | null>(null);
+  const [visorHtml, setVisorHtml] = useState<string | null>(null);
+  const [visorLoading, setVisorLoading] = useState(false);
+
+  const esOfficeExt = (nombre: string) => {
+    const ext = nombre.split('.').pop()?.toLowerCase();
+    return ext && ['docx','xlsx','pptx','doc','xls','ppt','odt','ods','odp'].includes(ext);
+  };
+
+  const renderOffice = async (doc: Documento, blob: Blob) => {
+    const ext = doc.nombre.split('.').pop()?.toLowerCase();
+    try {
+      if (ext === 'docx') {
+        const buf = await blob.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+        setVisorHtml(result.value);
+        return;
+      }
+      if (ext === 'xlsx') {
+        const buf = await blob.arrayBuffer();
+        const workbook = XLSX.read(buf, { type: 'array' });
+        let html = '';
+        workbook.SheetNames.forEach((name) => {
+          const sheet = workbook.Sheets[name];
+          html += `<h4 style="color:var(--accent);margin:0.5rem 0">${name}</h4>`;
+          html += XLSX.utils.sheetToHtml(sheet, { id: `sheet-${name}` });
+        });
+        setVisorHtml(html);
+        return;
+      }
+    } catch {}
+    setVisorHtml(null);
+  };
+
+  const verDocumento = async (doc: Documento) => {
+    setVisorHtml(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/documentos/${doc.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setVisorUrl(url);
+      setVisorDoc(doc);
+      const ext = doc.nombre.split('.').pop()?.toLowerCase();
+      if (ext === 'docx' || ext === 'xlsx') {
+        setVisorLoading(true);
+        await renderOffice(doc, blob);
+        setVisorLoading(false);
+      }
+    } catch {
+      setMsg('Error al cargar el archivo');
+      setVisorLoading(false);
+    }
+  };
+
+  const cerrarVisor = () => {
+    if (visorUrl) URL.revokeObjectURL(visorUrl);
+    setVisorUrl(null);
+    setVisorDoc(null);
+    setVisorHtml(null);
+  };
+
   const formatSize = (bytes: number) => {
     if (!bytes) return '-';
     const kb = bytes / 1024;
@@ -106,6 +174,7 @@ export default function ListaDocumentos() {
   };
 
   return (
+    <>
     <div>
       <div className="page-header">
         <h1>Documentos</h1>
@@ -174,7 +243,12 @@ export default function ListaDocumentos() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <strong>{doc.nombre}</strong>
+                    <strong
+                      onClick={() => verDocumento(doc)}
+                      style={{ cursor: 'pointer', color: 'var(--accent)' }}
+                    >
+                      {doc.nombre}
+                    </strong>
                     <span style={{
                       fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '999px',
                       border: '1px solid var(--accent)', color: 'var(--accent)',
@@ -206,5 +280,66 @@ export default function ListaDocumentos() {
         </div>
       )}
     </div>
+
+      {visorDoc && visorUrl && (
+        <div
+          onClick={cerrarVisor}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '2rem',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)', borderRadius: '12px',
+              width: '100%', maxWidth: '900px', maxHeight: '90vh',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            }}
+          >
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <strong style={{ fontSize: '0.95rem' }}>{visorDoc.nombre}</strong>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => descargar(visorDoc)} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>
+                  Descargar
+                </button>
+                <button onClick={cerrarVisor} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto', color: 'var(--error)' }}>
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+              {visorLoading ? (
+                <div className="loading">Procesando documento...</div>
+              ) : visorHtml ? (
+                <div
+                  className="office-preview"
+                  dangerouslySetInnerHTML={{ __html: visorHtml }}
+                  style={{ width: '100%', maxWidth: '100%' }}
+                />
+              ) : visorDoc.mimeType?.startsWith('image/') ? (
+                <img src={visorUrl!} alt={visorDoc.nombre} style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px' }} />
+              ) : visorDoc.mimeType === 'application/pdf' ? (
+                <iframe src={visorUrl!} title={visorDoc.nombre} style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '8px' }} />
+              ) : visorDoc.mimeType?.startsWith('text/') ? (
+                <object data={visorUrl!} type={visorDoc.mimeType} style={{ width: '100%', height: '70vh', borderRadius: '8px', background: '#0d0d0d' }} />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <p style={{ marginBottom: '1rem' }}>Vista previa no disponible para este tipo de archivo.</p>
+                  <button onClick={() => descargar(visorDoc)} className="btn-primary" style={{ width: 'auto' }}>
+                    Descargar archivo
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
