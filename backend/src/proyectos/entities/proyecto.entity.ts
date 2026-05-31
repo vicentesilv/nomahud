@@ -48,10 +48,7 @@ export class Proyecto {
     clienteRel: Cliente;
 
     @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
-    presupuesto: number;
-
-    @Column({ type: 'varchar', length: 10, default: 'USD' })
-    moneda: string;
+    ganancia: number;
 
     @Column({ type: 'int' })
     creadorId: number;

@@ -14,6 +14,8 @@ import DetalleProyecto from './pages/proyectos/DetalleProyecto';
 import ListaClientes from './pages/clientes/ListaClientes';
 import NuevoCliente from './pages/clientes/NuevoCliente';
 import DetalleCliente from './pages/clientes/DetalleCliente';
+import ListaFinanzas from './pages/finanzas/ListaFinanzas';
+import NuevaTransaccion from './pages/finanzas/NuevaTransaccion';
 
 export default function App() {
   return (
@@ -34,6 +36,8 @@ export default function App() {
               <Route path="/clientes" element={<ListaClientes />} />
               <Route path="/clientes/nuevo" element={<NuevoCliente />} />
               <Route path="/clientes/:id" element={<DetalleCliente />} />
+              <Route path="/finanzas" element={<ListaFinanzas />} />
+              <Route path="/finanzas/nuevo" element={<NuevaTransaccion />} />
             </Route>
           </Route>
           <Route path="*" element={<Login />} />

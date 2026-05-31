@@ -10,6 +10,7 @@ import { PerfilesModule } from './perfiles/perfiles.module';
 import { ProyectosModule } from './proyectos/proyectos.module';
 import { TareasModule } from './tareas/tareas.module';
 import { ClientesModule } from './clientes/clientes.module';
+import { FinanzasModule } from './finanzas/finanzas.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -40,6 +41,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ProyectosModule,
     TareasModule,
     ClientesModule,
+    FinanzasModule,
   ],
   controllers: [AppController],
   providers: [AppService],

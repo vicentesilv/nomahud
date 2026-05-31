@@ -37,10 +37,5 @@ export class ActualizarProyectoDto {
 
     @IsOptional()
     @IsNumber()
-    presupuesto?: number;
-
-    @IsOptional()
-    @IsString()
-    @MaxLength(10)
-    moneda?: string;
+    ganancia?: number;
 }

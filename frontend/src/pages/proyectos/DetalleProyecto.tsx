@@ -23,8 +23,7 @@ interface Proyecto {
   prioridad: string;
   cliente: string;
   clienteRel: { id: number; nombre: string; empresa: string } | null;
-  presupuesto: number;
-  moneda: string;
+  ganancia: number;
   fechaInicio: string;
   fechaFin: string;
   tareas: Tarea[];
@@ -60,6 +59,8 @@ export default function DetalleProyecto() {
   const [editandoTarea, setEditandoTarea] = useState<Tarea | null>(null);
   const [tareaForm, setTareaForm] = useState({ titulo: '', descripcion: '', prioridad: 'media', fechaVencimiento: '', estimacionHoras: '' });
   const [tareaError, setTareaError] = useState('');
+  const [showProyectoForm, setShowProyectoForm] = useState(false);
+  const [proyectoForm, setProyectoForm] = useState({ ganancia: '', estado: '' });
 
   const cargarProyecto = () => {
     if (!id) return;
@@ -143,6 +144,25 @@ export default function DetalleProyecto() {
     } catch {}
   };
 
+  const abrirEditarProyecto = () => {
+    setProyectoForm({
+      ganancia: proyecto?.ganancia ? String(proyecto.ganancia) : '',
+      estado: proyecto?.estado || 'activo',
+    });
+    setShowProyectoForm(true);
+  };
+
+  const guardarProyecto = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      const body: any = { estado: proyectoForm.estado };
+      if (proyectoForm.ganancia) body.ganancia = Number(proyectoForm.ganancia);
+      await api.patch(`/proyectos/${id}`, body);
+      setShowProyectoForm(false);
+      cargarProyecto();
+    } catch {}
+  };
+
   if (loading) return <div className="loading">Cargando proyecto...</div>;
   if (!proyecto) return <div className="loading">Proyecto no encontrado</div>;
 
@@ -169,6 +189,9 @@ export default function DetalleProyecto() {
           )}
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={abrirEditarProyecto} className="btn-secondary" style={{ width: 'auto' }}>
+            ✎ Editar proyecto
+          </button>
           <button onClick={abrirFormNueva} className="btn-primary" style={{ width: 'auto' }}>
             + Nueva tarea
           </button>
@@ -194,8 +217,8 @@ export default function DetalleProyecto() {
           {proyecto.fechaFin && (
             <div><strong style={{ color: 'var(--text-muted)' }}>Fin:</strong> {proyecto.fechaFin}</div>
           )}
-          {proyecto.presupuesto != null && (
-            <div><strong style={{ color: 'var(--text-muted)' }}>Presupuesto:</strong> {proyecto.moneda} {Number(proyecto.presupuesto).toLocaleString()}</div>
+          {proyecto.ganancia != null && (
+            <div><strong style={{ color: 'var(--text-muted)' }}>Ganancia:</strong> ${Number(proyecto.ganancia).toLocaleString()}</div>
           )}
           <div><strong style={{ color: 'var(--text-muted)' }}>Tareas:</strong> {tareas.length} ({tareas.filter(t => t.estado !== 'completada' && t.estado !== 'cancelada').length} pendientes)</div>
         </div>
@@ -331,6 +354,42 @@ export default function DetalleProyecto() {
                   {editandoTarea ? 'Guardar cambios' : 'Crear tarea'}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Project edit modal */}
+      {showProyectoForm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }} onClick={() => setShowProyectoForm(false)}>
+          <div className="perfil-form" style={{ maxWidth: '400px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: '1.25rem' }}>Editar proyecto</h3>
+            <form onSubmit={guardarProyecto}>
+              <div className="field">
+                <label>Estado</label>
+                <select value={proyectoForm.estado} onChange={(e) => setProyectoForm({ ...proyectoForm, estado: e.target.value })}>
+                  <option value="activo">Activo</option>
+                  <option value="en_pausa">En pausa</option>
+                  <option value="completado">Completado</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>Ganancia (USD)</label>
+                <input type="number" value={proyectoForm.ganancia} onChange={(e) => setProyectoForm({ ...proyectoForm, ganancia: e.target.value })} placeholder="5000" />
+              </div>
+              {proyecto?.estado !== 'completado' && proyectoForm.estado === 'completado' && proyectoForm.ganancia && (
+                <div className="success-msg" style={{ fontSize: '0.8rem' }}>
+                  Al marcar como completado se creará automáticamente un ingreso en Finanzas por ${Number(proyectoForm.ganancia).toLocaleString()}
+                </div>
+              )}
+              <div className="form-actions">
+                <button type="submit" className="btn-primary">Guardar cambios</button>
+                <button type="button" onClick={() => setShowProyectoForm(false)} className="btn-secondary">Cancelar</button>
               </div>
             </form>
           </div>

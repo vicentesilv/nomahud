@@ -10,8 +10,7 @@ interface Proyecto {
   prioridad: string;
   cliente: string;
   clienteRel: { id: number; nombre: string; empresa: string } | null;
-  presupuesto: number;
-  moneda: string;
+  ganancia: number;
   fechaInicio: string;
   fechaFin: string;
   tareas: any[];
@@ -95,7 +94,7 @@ export default function ListaProyectos() {
                     )}
                     <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                       {p.clienteRel && <span>Cliente: {p.clienteRel.nombre}{p.clienteRel.empresa ? ` (${p.clienteRel.empresa})` : ''}</span>}
-                      {p.presupuesto != null && <span>Presupuesto: {p.moneda} {Number(p.presupuesto).toLocaleString()}</span>}
+                      {p.ganancia != null && <span>Ganancia: ${Number(p.ganancia).toLocaleString()}</span>}
                       <span>Tareas: {tareasTotales(p)} ({tareasPendientes(p)} pendientes)</span>
                     </div>
                   </div>
