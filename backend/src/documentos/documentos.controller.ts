@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Response } from 'express';
@@ -65,6 +65,17 @@ export class DocumentosController {
         @Body() dto: ActualizarDocumentoDto,
     ) {
         return this.documentosService.update(id, usuario.id, dto);
+    }
+
+    @Put(':id/archivo')
+    @UseInterceptors(FileInterceptor('archivo', { storage: memoryStorage() }))
+    async reemplazarArchivo(
+        @User() usuario: Usuario,
+        @Param('id', ParseIntPipe) id: number,
+        @UploadedFile() file: Express.Multer.File,
+    ) {
+        if (!file) throw new Error('Archivo es requerido');
+        return this.documentosService.reemplazarArchivo(id, usuario.id, file);
     }
 
     @Delete(':id')

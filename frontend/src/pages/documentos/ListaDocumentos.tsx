@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import api from '../../services/api';
-import mammoth from 'mammoth';
+import VisorDocumentos from './VisorDocumentos';
+import mammoth from 'mammoth/mammoth.browser.js';
 import * as XLSX from 'xlsx';
 
 interface Documento {
@@ -100,61 +101,64 @@ export default function ListaDocumentos() {
     }
   };
 
+  type VisorMode = 'cerrado' | 'modal' | 'pagina';
+
   const [visorDoc, setVisorDoc] = useState<Documento | null>(null);
   const [visorUrl, setVisorUrl] = useState<string | null>(null);
   const [visorHtml, setVisorHtml] = useState<string | null>(null);
   const [visorLoading, setVisorLoading] = useState(false);
-
-  const esOfficeExt = (nombre: string) => {
-    const ext = nombre.split('.').pop()?.toLowerCase();
-    return ext && ['docx','xlsx','pptx','doc','xls','ppt','odt','ods','odp'].includes(ext);
-  };
-
-  const renderOffice = async (doc: Documento, blob: Blob) => {
-    const ext = doc.nombre.split('.').pop()?.toLowerCase();
-    try {
-      if (ext === 'docx') {
-        const buf = await blob.arrayBuffer();
-        const result = await mammoth.convertToHtml({ arrayBuffer: buf });
-        setVisorHtml(result.value);
-        return;
-      }
-      if (ext === 'xlsx') {
-        const buf = await blob.arrayBuffer();
-        const workbook = XLSX.read(buf, { type: 'array' });
-        let html = '';
-        workbook.SheetNames.forEach((name) => {
-          const sheet = workbook.Sheets[name];
-          html += `<h4 style="color:var(--accent);margin:0.5rem 0">${name}</h4>`;
-          html += XLSX.utils.sheetToHtml(sheet, { id: `sheet-${name}` });
-        });
-        setVisorHtml(html);
-        return;
-      }
-    } catch {}
-    setVisorHtml(null);
-  };
+  const [visorError, setVisorError] = useState('');
+  const [visorMode, setVisorMode] = useState<VisorMode>('cerrado');
+  const [visorKey, setVisorKey] = useState(0);
 
   const verDocumento = async (doc: Documento) => {
     setVisorHtml(null);
+    setVisorError('');
+    const mime = doc.mimeType || '';
+    const esImagen = mime.startsWith('image/');
+    const esOffice = doc.nombre.split('.').pop()?.toLowerCase() === 'docx' || doc.nombre.split('.').pop()?.toLowerCase() === 'xlsx';
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/documentos/${doc.id}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error('Error al descargar el archivo');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setVisorUrl(url);
       setVisorDoc(doc);
-      const ext = doc.nombre.split('.').pop()?.toLowerCase();
-      if (ext === 'docx' || ext === 'xlsx') {
+
+      if (esOffice) {
+        setVisorMode('pagina');
         setVisorLoading(true);
-        await renderOffice(doc, blob);
+        try {
+          const ext = doc.nombre.split('.').pop()?.toLowerCase();
+          if (ext === 'docx') {
+            const buf = await blob.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+            setVisorHtml(result.value);
+          } else if (ext === 'xlsx') {
+            const buf = await blob.arrayBuffer();
+            const workbook = XLSX.read(buf, { type: 'array' });
+            let html = '';
+            workbook.SheetNames.forEach((name) => {
+              const sheet = workbook.Sheets[name];
+              html += `<h4 style="color:var(--accent);margin:0.5rem 0">${name}</h4>`;
+              html += XLSX.utils.sheetToHtml(sheet, { id: `sheet-${name}` });
+            });
+            setVisorHtml(html);
+          }
+        } catch (e: any) {
+          setVisorError('Error al procesar el documento: ' + (e.message || ''));
+        }
         setVisorLoading(false);
+      } else if (esImagen) {
+        setVisorMode('modal');
+      } else {
+        setVisorMode('pagina');
       }
-    } catch {
-      setMsg('Error al cargar el archivo');
+    } catch (e: any) {
+      setMsg(e.message || 'Error al cargar el archivo');
       setVisorLoading(false);
     }
   };
@@ -164,6 +168,9 @@ export default function ListaDocumentos() {
     setVisorUrl(null);
     setVisorDoc(null);
     setVisorHtml(null);
+    setVisorError('');
+    setVisorMode('cerrado');
+    setVisorKey((k) => k + 1);
   };
 
   const formatSize = (bytes: number) => {
@@ -175,6 +182,20 @@ export default function ListaDocumentos() {
 
   return (
     <>
+    {visorMode === 'pagina' && visorDoc && visorUrl ? (
+      <VisorDocumentos
+        key={visorKey}
+        doc={visorDoc}
+        url={visorUrl}
+        html={visorHtml}
+        loading={visorLoading}
+        error={visorError}
+        mode="pagina"
+        onClose={cerrarVisor}
+        onDownload={descargar}
+        onSaved={cargar}
+      />
+    ) : (
     <div>
       <div className="page-header">
         <h1>Documentos</h1>
@@ -280,65 +301,21 @@ export default function ListaDocumentos() {
         </div>
       )}
     </div>
+    )}
 
-      {visorDoc && visorUrl && (
-        <div
-          onClick={cerrarVisor}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '2rem',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: 'var(--bg-card)', borderRadius: '12px',
-              width: '100%', maxWidth: '900px', maxHeight: '90vh',
-              display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            }}
-          >
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              <strong style={{ fontSize: '0.95rem' }}>{visorDoc.nombre}</strong>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => descargar(visorDoc)} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>
-                  Descargar
-                </button>
-                <button onClick={cerrarVisor} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto', color: 'var(--error)' }}>
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div style={{ flex: 1, overflow: 'auto', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-              {visorLoading ? (
-                <div className="loading">Procesando documento...</div>
-              ) : visorHtml ? (
-                <div
-                  className="office-preview"
-                  dangerouslySetInnerHTML={{ __html: visorHtml }}
-                  style={{ width: '100%', maxWidth: '100%' }}
-                />
-              ) : visorDoc.mimeType?.startsWith('image/') ? (
-                <img src={visorUrl!} alt={visorDoc.nombre} style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px' }} />
-              ) : visorDoc.mimeType === 'application/pdf' ? (
-                <iframe src={visorUrl!} title={visorDoc.nombre} style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '8px' }} />
-              ) : visorDoc.mimeType?.startsWith('text/') ? (
-                <object data={visorUrl!} type={visorDoc.mimeType} style={{ width: '100%', height: '70vh', borderRadius: '8px', background: '#0d0d0d' }} />
-              ) : (
-                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                  <p style={{ marginBottom: '1rem' }}>Vista previa no disponible para este tipo de archivo.</p>
-                  <button onClick={() => descargar(visorDoc)} className="btn-primary" style={{ width: 'auto' }}>
-                    Descargar archivo
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {visorMode === 'modal' && visorDoc && visorUrl && (
+        <VisorDocumentos
+          key={visorKey}
+          doc={visorDoc}
+          url={visorUrl}
+          html={visorHtml}
+          loading={visorLoading}
+          error={visorError}
+          mode="modal"
+          onClose={cerrarVisor}
+          onDownload={descargar}
+          onSaved={cargar}
+        />
       )}
     </>
   );

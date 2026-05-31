@@ -58,6 +58,19 @@ export class DocumentosService {
         return this.documentoRepository.save(doc);
     }
 
+    async reemplazarArchivo(id: number, creadorId: number, file: Express.Multer.File): Promise<Documento> {
+        const doc = await this.findOne(id, creadorId);
+        const rutaVieja = path.join(this.uploadDir, doc.archivo);
+        await fs.unlink(rutaVieja).catch(() => {});
+        const ext = path.extname(file.originalname);
+        const archivo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+        await fs.writeFile(path.join(this.uploadDir, archivo), file.buffer);
+        doc.archivo = archivo;
+        doc.mimeType = file.mimetype;
+        doc.size = file.size;
+        return this.documentoRepository.save(doc);
+    }
+
     async remove(id: number, creadorId: number): Promise<void> {
         const doc = await this.findOne(id, creadorId);
         const ruta = path.join(this.uploadDir, doc.archivo);
