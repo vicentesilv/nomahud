@@ -29,6 +29,14 @@ export class TareasService {
         });
     }
 
+    async findAll(userId: number): Promise<Tarea[]> {
+        return this.tareaRepository.find({
+            where: { proyecto: { creadorId: userId } },
+            relations: ['proyecto', 'asignadoA'],
+            order: { createdAt: 'ASC' },
+        });
+    }
+
     async findOne(id: number): Promise<Tarea> {
         const tarea = await this.tareaRepository.findOne({
             where: { id },

@@ -22,6 +22,7 @@ import ListaViajes from './pages/viajes/ListaViajes';
 import NuevoViaje from './pages/viajes/NuevoViaje';
 import DetalleViaje from './pages/viajes/DetalleViaje';
 import ListaDocumentos from './pages/documentos/ListaDocumentos';
+import ListaTareas from './pages/tareas/ListaTareas';
 
 export default function App() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="/proyectos" element={<ListaProyectos />} />
               <Route path="/proyectos/nuevo" element={<NuevoProyecto />} />
               <Route path="/proyectos/:id" element={<DetalleProyecto />} />
+              <Route path="/tareas" element={<ListaTareas />} />
               <Route path="/clientes" element={<ListaClientes />} />
               <Route path="/clientes/nuevo" element={<NuevoCliente />} />
               <Route path="/clientes/:id" element={<DetalleCliente />} />

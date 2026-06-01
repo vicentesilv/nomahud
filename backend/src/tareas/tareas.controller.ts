@@ -3,6 +3,7 @@ import { TareasService } from './tareas.service';
 import { CrearTareaDto } from './dtos/crear-tarea.dto';
 import { ActualizarTareaDto } from './dtos/actualizar-tarea.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { User } from '../common/decorators/user.decorator';
 
 @Controller('tareas')
 @UseGuards(JwtAuthGuard)
@@ -12,6 +13,11 @@ export class TareasController {
     @Post()
     async create(@Body() dto: CrearTareaDto) {
         return this.tareasService.create(dto);
+    }
+
+    @Get()
+    async findAll(@User('id') userId: number) {
+        return this.tareasService.findAll(userId);
     }
 
     @Get('proyecto/:proyectoId')
