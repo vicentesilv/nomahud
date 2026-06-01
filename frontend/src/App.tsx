@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import OlvideContrasena from './pages/OlvideContrasena';
 import RestablecerContrasena from './pages/RestablecerContrasena';
+import ConfirmarCuenta from './pages/ConfirmarCuenta';
 import MiPerfil from './pages/perfiles/MiPerfil';
 import PerfilPublico from './pages/perfiles/PerfilPublico';
 import ListaProyectos from './pages/proyectos/ListaProyectos';
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/registro" element={<Register />} />
           <Route path="/olvide-contrasena" element={<OlvideContrasena />} />
           <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
+          <Route path="/confirmar-cuenta" element={<ConfirmarCuenta />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<ListaDashboard />} />
