@@ -116,7 +116,8 @@ export default function ListaDocumentos() {
     setVisorError('');
     const mime = doc.mimeType || '';
     const esImagen = mime.startsWith('image/');
-    const esOffice = doc.nombre.split('.').pop()?.toLowerCase() === 'docx' || doc.nombre.split('.').pop()?.toLowerCase() === 'xlsx';
+    const ext = doc.nombre.split('.').pop()?.toLowerCase();
+    const esOffice = ext === 'docx' || ext === 'xlsx' || ext === 'pptx';
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/documentos/${doc.id}/download`, {
@@ -144,8 +145,36 @@ export default function ListaDocumentos() {
             workbook.SheetNames.forEach((name) => {
               const sheet = workbook.Sheets[name];
               html += `<h4 style="color:var(--accent);margin:0.5rem 0">${name}</h4>`;
-              html += XLSX.utils.sheetToHtml(sheet, { id: `sheet-${name}` });
+              html += XLSX.utils.sheet_to_html(sheet, { id: `sheet-${name}` });
             });
+            setVisorHtml(html);
+          } else if (ext === 'pptx') {
+            const buf = await blob.arrayBuffer();
+            const { default: JSZip } = await import('jszip');
+            const zip = await JSZip.loadAsync(buf);
+            const slideFiles = Object.keys(zip.files)
+              .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+              .sort();
+            let html = '';
+            for (const f of slideFiles) {
+              const slideXml = await zip.file(f)!.async('string');
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(slideXml, 'text/xml');
+              const tNodes = xmlDoc.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 't');
+              const slideNum = f.match(/\d+/)?.[0] || '0';
+              html += `<h4 style="color:var(--accent);margin:0.5rem 0">Diapositiva ${slideNum}</h4>`;
+              html += '<div style="margin-bottom:1rem;padding:1rem;border:1px solid #555;border-radius:8px;background:#fff;color:#111;font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5">';
+              let hasContent = false;
+              for (const el of Array.from(tNodes)) {
+                const text = el.textContent || '';
+                if (text.trim()) {
+                  html += `<p>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                  hasContent = true;
+                }
+              }
+              if (!hasContent) html += '<p style="color:var(--text-muted);font-style:italic">(Diapositiva vacía)</p>';
+              html += '</div>';
+            }
             setVisorHtml(html);
           }
         } catch (e: any) {

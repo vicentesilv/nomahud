@@ -29,6 +29,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
   const [editando, setEditando] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [editWorkbook, setEditWorkbook] = useState<XLSX.WorkBook | null>(null);
+  const [editPptx, setEditPptx] = useState<{ buffer: ArrayBuffer; slideFiles: string[]; slideContents: string[] } | null>(null);
   const [saving, setSaving] = useState(false);
   const [editMsg, setEditMsg] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
   const esTexto = mime.startsWith('text/');
   const esDocx = ext === 'docx';
   const esXlsx = ext === 'xlsx';
+  const esPptx = ext === 'pptx';
 
   const iniciarEdicion = useCallback(async () => {
     setEditMsg('');
@@ -53,6 +55,22 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
         const buf = await blob.arrayBuffer();
         const wb = XLSX.read(buf, { type: 'array' });
         setEditWorkbook(wb);
+      } else if (esPptx) {
+        const buf = await blob.arrayBuffer();
+        const { default: JSZip } = await import('jszip');
+        const zip = await JSZip.loadAsync(buf.slice(0));
+        const slideFiles = Object.keys(zip.files)
+          .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+          .sort();
+        const slideContents: string[] = [];
+        for (const f of slideFiles) {
+          const xml = await zip.file(f)!.async('string');
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(xml, 'text/xml');
+          const tNodes = doc.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 't');
+          slideContents.push(Array.from(tNodes).map(el => el.textContent || '').join('\n'));
+        }
+        setEditPptx({ buffer: buf, slideFiles, slideContents });
       } else if (esTexto) {
         const text = await blob.text();
         setEditContent(text);
@@ -61,12 +79,13 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     } catch {
       setEditMsg('Error al cargar el archivo para edición');
     }
-  }, [doc.id, esTexto, esXlsx]);
+  }, [doc.id, esTexto, esXlsx, esPptx]);
 
   useEffect(() => {
     setEditando(false);
     setEditContent('');
     setEditWorkbook(null);
+    setEditPptx(null);
     setEditMsg('');
   }, [doc.id]);
 
@@ -74,6 +93,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     setEditando(false);
     setEditContent('');
     setEditWorkbook(null);
+    setEditPptx(null);
     setEditMsg('');
   };
 
@@ -88,6 +108,27 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
       } else if (esXlsx && editWorkbook) {
         const wbout = XLSX.write(editWorkbook, { bookType: 'xlsx', type: 'array' });
         blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      } else if (esPptx && editPptx) {
+        const { default: JSZip } = await import('jszip');
+        const zip = await JSZip.loadAsync(editPptx.buffer.slice(0));
+        if (editorRef.current) {
+          const slideEls = editorRef.current.querySelectorAll('[data-slide]');
+          for (let i = 0; i < editPptx.slideFiles.length; i++) {
+            const el = slideEls[i] as HTMLElement | undefined;
+            if (!el) continue;
+            const lines = (el.textContent || '').split('\n');
+            const xml = await zip.file(editPptx.slideFiles[i])!.async('string');
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xml, 'text/xml');
+            const tNodes = Array.from(xmlDoc.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 't'));
+            tNodes.forEach((node, idx) => {
+              node.textContent = idx < lines.length ? lines[idx] : '';
+            });
+            const serializer = new XMLSerializer();
+            zip.file(editPptx.slideFiles[i], serializer.serializeToString(xmlDoc));
+          }
+        }
+        blob = await zip.generateAsync({ type: 'blob' });
       } else if (esDocx) {
         const content = editorRef.current?.innerHTML || '';
         const docx = await import('docx');
@@ -277,6 +318,32 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
       );
     }
 
+    if (editando && esPptx && editPptx) {
+      return (
+        <div ref={editorRef} style={{ overflow: 'auto', width: '100%' }}>
+          {editPptx.slideContents.map((content, i) => (
+            <div key={i} style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}>Diapositiva {i + 1}</h4>
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                data-slide={i}
+                style={{
+                  width: '100%', minHeight: '120px',
+                  background: '#fff', color: '#111',
+                  border: '1px solid var(--border)', borderRadius: '8px',
+                  padding: '1rem', outline: 'none',
+                  fontFamily: 'Calibri, Arial, sans-serif',
+                  fontSize: '11pt', lineHeight: '1.5',
+                }}
+                dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br>') }}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     if (loading) return <div className="loading">Procesando documento...</div>;
     if (error) return (
       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--error)' }}>
@@ -306,7 +373,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     );
   };
 
-  const puedeEditar = esTexto || esDocx || esXlsx;
+  const puedeEditar = esTexto || esDocx || esXlsx || esPptx;
 
   return mode === 'pagina' ? (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 2rem)' }}>
