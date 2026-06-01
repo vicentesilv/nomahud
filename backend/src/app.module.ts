@@ -14,6 +14,7 @@ import { FinanzasModule } from './finanzas/finanzas.module';
 import { TiempoModule } from './tiempo/tiempo.module';
 import { ViajesModule } from './viajes/viajes.module';
 import { DocumentosModule } from './documentos/documentos.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -48,6 +49,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TiempoModule,
     ViajesModule,
     DocumentosModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

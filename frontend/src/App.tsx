@@ -23,6 +23,7 @@ import NuevoViaje from './pages/viajes/NuevoViaje';
 import DetalleViaje from './pages/viajes/DetalleViaje';
 import ListaDocumentos from './pages/documentos/ListaDocumentos';
 import ListaTareas from './pages/tareas/ListaTareas';
+import ListaDashboard from './pages/ListaDashboard';
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
+              <Route path="/dashboard" element={<ListaDashboard />} />
               <Route path="/mi-perfil" element={<MiPerfil />} />
               <Route path="/perfiles/:id" element={<PerfilPublico />} />
               <Route path="/proyectos" element={<ListaProyectos />} />
