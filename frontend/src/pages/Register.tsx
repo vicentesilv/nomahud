@@ -1,13 +1,32 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useMemo, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+function getPasswordStrength(pw: string): { score: number; label: string; bars: ('weak' | 'medium' | 'strong')[] } {
+  if (!pw) return { score: 0, label: '', bars: [] };
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+  const map = ['', 'weak', 'medium', 'strong', 'strong'] as const;
+  return {
+    score,
+    label: score === 0 ? '' : map[score] ?? 'strong',
+    bars: Array.from({ length: 4 }, (_, i) => (i < score ? map[score] || 'weak' : 'weak')) as ('weak' | 'medium' | 'strong')[],
+  };
+}
+
 export default function Register() {
   const [form, setForm] = useState({ nombre: '', correo: '', contrasena: '', ciudad: '', fechaNacimiento: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const strength = useMemo(() => getPasswordStrength(form.contrasena), [form.contrasena]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -17,12 +36,15 @@ export default function Register() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setIsLoading(true);
     try {
       await register(form.nombre, form.correo, form.contrasena, form.ciudad || undefined, form.fechaNacimiento || undefined);
       setSuccess('Registro exitoso. Revisa tu correo para confirmar la cuenta.');
       setTimeout(() => navigate('/inicio-sesion'), 3000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al registrarse');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -34,32 +56,88 @@ export default function Register() {
           <h1>Noma<span>Hud</span></h1>
           <p>Únete a la comunidad nómada</p>
         </div>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {error && <div className="error-msg">{error}</div>}
           {success && <div className="success-msg">{success}</div>}
           <div className="field">
-            <label>Nombre</label>
-            <input name="nombre" value={form.nombre} onChange={handleChange} required placeholder="Tu nombre" />
+            <label htmlFor="nombre">Nombre</label>
+            <div className="input-wrapper">
+              <input id="nombre" name="nombre" value={form.nombre} onChange={handleChange} required placeholder="Tu nombre" autoComplete="name" disabled={isLoading} />
+            </div>
           </div>
           <div className="field">
-            <label>Correo electrónico</label>
-            <input name="correo" type="email" value={form.correo} onChange={handleChange} required placeholder="tu@correo.com" />
+            <label htmlFor="correo">Correo electrónico</label>
+            <div className="input-wrapper">
+              <input id="correo" name="correo" type="email" value={form.correo} onChange={handleChange} required placeholder="tu@correo.com" autoComplete="email" disabled={isLoading} />
+            </div>
           </div>
           <div className="field">
-            <label>Contraseña</label>
-            <input name="contrasena" type="password" value={form.contrasena} onChange={handleChange} required placeholder="Mín. 8 caracteres" />
+            <label htmlFor="contrasena">Contraseña</label>
+            <div className="input-wrapper">
+              <input
+                id="contrasena"
+                name="contrasena"
+                type={showPassword ? 'text' : 'password'}
+                value={form.contrasena}
+                onChange={handleChange}
+                required
+                placeholder="Mín. 8 caracteres"
+                autoComplete="new-password"
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {showPassword ? (
+                    <>
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  )}
+                </svg>
+              </button>
+            </div>
+            {form.contrasena && (
+              <>
+                <div className="password-strength">
+                  {strength.bars.map((b, i) => (
+                    <div key={i} className={`password-strength-bar ${b}`} />
+                  ))}
+                </div>
+                <div className={`password-strength-label ${strength.label}`}>
+                  {strength.label === 'weak' && 'Débil'}
+                  {strength.label === 'medium' && 'Media'}
+                  {strength.label === 'strong' && 'Fuerte'}
+                </div>
+              </>
+            )}
           </div>
           <div className="field-row">
             <div className="field">
-              <label>Ciudad</label>
-              <input name="ciudad" value={form.ciudad} onChange={handleChange} placeholder="Tu ciudad" />
+              <label htmlFor="ciudad">Ciudad</label>
+              <input id="ciudad" name="ciudad" value={form.ciudad} onChange={handleChange} placeholder="Tu ciudad" autoComplete="address-level2" disabled={isLoading} />
             </div>
             <div className="field">
-              <label>Fecha de nacimiento</label>
-              <input name="fechaNacimiento" type="date" value={form.fechaNacimiento} onChange={handleChange} />
+              <label htmlFor="fechaNacimiento">Fecha de nacimiento</label>
+              <input id="fechaNacimiento" name="fechaNacimiento" type="date" value={form.fechaNacimiento} onChange={handleChange} disabled={isLoading} />
             </div>
           </div>
-          <button type="submit" className="btn-primary">Crear cuenta</button>
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading && <span className="btn-spinner" />}
+            {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
+          </button>
         </form>
         <p className="auth-link">
           ¿Ya tienes cuenta? <Link to="/inicio-sesion">Inicia sesión</Link>
