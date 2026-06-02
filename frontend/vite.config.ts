@@ -28,6 +28,7 @@ export default module.exports;
       exclude: ['mammoth', 'xlsx'],
     },
     server: {
+      allowedHosts: true,
       proxy: {
         '/api': {
           target: apiUrl,
