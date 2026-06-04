@@ -19,6 +19,7 @@ const PRIORIDAD_ORDER: Record<string, number> = { critica: 0, alta: 1, media: 2,
 const PRIORIDAD_LABEL: Record<string, string> = { critica: 'Crítica', alta: 'Alta', media: 'Media', baja: 'Baja' };
 const PRIORIDAD_COLOR: Record<string, string> = { critica: '#ef4444', alta: '#f59e0b', media: '#06b6d4', baja: '#8888a0' };
 const ESTADO_LABEL: Record<string, string> = { pendiente: 'Pendiente', en_progreso: 'En progreso', completada: 'Completada', cancelada: 'Cancelada' };
+const ESTADO_BADGE: Record<string, string> = { pendiente: 'badge-warning', en_progreso: 'badge-accent', completada: 'badge-success', cancelada: 'badge-error' };
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const DAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
 
@@ -34,6 +35,54 @@ function getMonthDays(year: number, month: number): Date[] {
   return days;
 }
 
+function IconGrid() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
+function IconList() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
+}
+
+function IconCheckSquare() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  );
+}
+
+function IconFolder() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function IconUser() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function IconClock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
 export default function ListaTareas() {
   const [tasks, setTasks] = useState<Tarea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +90,7 @@ export default function ListaTareas() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
   const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const [vista, setVista] = useState<'tarjeta' | 'lista'>('tarjeta');
 
   useEffect(() => {
     api.get('/tareas')
@@ -81,122 +131,160 @@ export default function ListaTareas() {
     setSelectedDate(prev => prev === s ? null : s);
   };
 
-  if (loading) return <div className="loading">Cargando tareas...</div>;
+  if (loading) {
+    return (
+      <div className="page-tareas">
+        <div className="page-header"><h1>Tareas</h1></div>
+        <div className="tareas-grid">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton-card">
+              <div className="skeleton-line w-60" />
+              <div className="skeleton-line w-full" />
+              <div className="skeleton-line w-40" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <div className="page-tareas">
       <div className="page-header">
         <h1>Tareas</h1>
-        {selectedDate && (
-          <button onClick={() => setSelectedDate(null)} className="btn-secondary" style={{ width: 'auto', fontSize: '0.85rem' }}>
-            Limpiar filtro
-          </button>
-        )}
+        <div className="page-header-actions">
+          <div className="view-toggle">
+            <button
+              className={`view-toggle-btn ${vista === 'tarjeta' ? 'active' : ''}`}
+              onClick={() => setVista('tarjeta')}
+              title="Vista en tarjetas"
+            >
+              <IconGrid />
+            </button>
+            <button
+              className={`view-toggle-btn ${vista === 'lista' ? 'active' : ''}`}
+              onClick={() => setVista('lista')}
+              title="Vista en lista"
+            >
+              <IconList />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="tareas-layout">
+        <div className="tareas-main">
           {selectedDate && (
-            <p style={{ color: 'var(--accent)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-              Tareas con fecha: {new Date(selectedDate + 'T12:00:00').toLocaleDateString()}
-            </p>
-          )}
-          {sortedGroups.length === 0 ? (
-            <div className="perfil-section" style={{ textAlign: 'center', padding: '3rem' }}>
-              <p style={{ color: 'var(--text-muted)' }}>{selectedDate ? 'No hay tareas para esta fecha.' : 'No hay tareas.'}</p>
+            <div className="tareas-filter-bar">
+              <span>
+                <IconClock />
+                Tareas con fecha: {new Date(selectedDate + 'T12:00:00').toLocaleDateString()}
+              </span>
+              <button onClick={() => setSelectedDate(null)} className="btn-secondary" style={{ width: 'auto', fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}>
+                Limpiar filtro
+              </button>
             </div>
-          ) : (
-            sortedGroups.map(([prioridad, tareas]) => (
-              <div key={prioridad} className="perfil-section" style={{ marginBottom: '0.75rem', padding: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: PRIORIDAD_COLOR[prioridad] }} />
-                  <strong style={{ fontSize: '0.9rem' }}>{PRIORIDAD_LABEL[prioridad]}</strong>
-                  <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>({tareas.length})</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  {tareas.map(t => (
-                    <div
-                      key={t.id}
-                      onClick={() => setSelectedTask(t)}
-                      style={{
-                        padding: '0.6rem 0.75rem',
-                        background: selectedTask?.id === t.id ? 'var(--bg-card-hover)' : 'transparent',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)',
-                        cursor: 'pointer',
-                        transition: 'var(--transition)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong style={{ fontSize: '0.85rem' }}>{t.titulo}</strong>
-                          <span style={{
-                            fontSize: '0.7rem', marginLeft: '0.5rem',
-                            padding: '0.1rem 0.35rem', borderRadius: '4px',
-                            border: '1px solid var(--border)',
-                            color: 'var(--text-muted)',
-                          }}>
-                            {ESTADO_LABEL[t.estado]}
-                          </span>
-                        </div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{t.proyecto.nombre}</span>
-                      </div>
-                      {t.fechaVencimiento && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-                          {new Date(t.fechaVencimiento).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
           )}
+          <div className="tareas-list-wrapper">
+            {sortedGroups.length === 0 ? (
+              <div className="tareas-empty">
+                <IconCheckSquare />
+                <p>{selectedDate ? 'No hay tareas para esta fecha.' : 'No hay tareas.'}</p>
+              </div>
+            ) : vista === 'tarjeta' ? (
+              <div className="tareas-grid">
+                {sortedGroups.map(([prioridad, tareas]) => (
+                  <div key={prioridad} className="tareas-group">
+                    <div className="tareas-group-header">
+                      <span className="priority-dot-lg" style={{ background: PRIORIDAD_COLOR[prioridad] }} />
+                      <span>{PRIORIDAD_LABEL[prioridad]}</span>
+                      <span className="tareas-group-count">{tareas.length}</span>
+                    </div>
+                    <div className="tareas-card-grid">
+                      {tareas.map((t, idx) => (
+                        <div
+                          key={t.id}
+                          className="tarea-card prioridad-tarea-card"
+                          style={{
+                            animationDelay: `${idx * 0.03}s`,
+                            borderLeftColor: PRIORIDAD_COLOR[t.prioridad],
+                          }}
+                          onClick={() => setSelectedTask(t)}
+                        >
+                          <div className="tarea-card-header">
+                            <span className="tarea-card-titulo">{t.titulo}</span>
+                            <span className={`badge ${ESTADO_BADGE[t.estado]}`}>{ESTADO_LABEL[t.estado]}</span>
+                          </div>
+                          <div className="tarea-card-meta">
+                            <span><IconFolder /> {t.proyecto.nombre}</span>
+                            {t.fechaVencimiento && (
+                              <span><IconClock /> {new Date(t.fechaVencimiento).toLocaleDateString()}</span>
+                            )}
+                            {t.asignadoA && (
+                              <span><IconUser /> {t.asignadoA.nombre}</span>
+                            )}
+                          </div>
+                          {t.descripcion && (
+                            <p className="tarea-card-desc">{t.descripcion}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="tareas-list">
+                {sortedGroups.map(([prioridad, tareas]) => (
+                  <div key={prioridad} className="tareas-group">
+                    <div className="tareas-group-header">
+                      <span className="priority-dot-lg" style={{ background: PRIORIDAD_COLOR[prioridad] }} />
+                      <span>{PRIORIDAD_LABEL[prioridad]}</span>
+                      <span className="tareas-group-count">{tareas.length}</span>
+                    </div>
+                    <div className="tareas-list-items">
+                      {tareas.map((t, idx) => (
+                        <div
+                          key={t.id}
+                          className="tarea-list-item"
+                          style={{
+                            animationDelay: `${idx * 0.02}s`,
+                            borderLeftColor: PRIORIDAD_COLOR[t.prioridad],
+                          }}
+                          onClick={() => setSelectedTask(t)}
+                        >
+                          <div className="tarea-list-item-main">
+                            <span className="tarea-list-item-titulo">{t.titulo}</span>
+                            <div className="tarea-list-item-badges">
+                              <span className={`badge ${ESTADO_BADGE[t.estado]}`}>{ESTADO_LABEL[t.estado]}</span>
+                              <span className="tarea-list-item-proyecto">{t.proyecto.nombre}</span>
+                            </div>
+                          </div>
+                          <div className="tarea-list-item-meta">
+                            {t.fechaVencimiento && (
+                              <span>{new Date(t.fechaVencimiento).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ width: '340px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {selectedTask ? (
-            <div className="perfil-section" style={{ padding: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>{selectedTask.titulo}</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
-                <div><span style={{ color: 'var(--text-muted)' }}>Estado: </span>{ESTADO_LABEL[selectedTask.estado]}</div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)' }}>Prioridad: </span>
-                  <span style={{ color: PRIORIDAD_COLOR[selectedTask.prioridad] }}>{PRIORIDAD_LABEL[selectedTask.prioridad]}</span>
-                </div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Proyecto: </span>{selectedTask.proyecto.nombre}</div>
-                {selectedTask.fechaVencimiento && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>Vence: </span>{new Date(selectedTask.fechaVencimiento).toLocaleDateString()}</div>
-                )}
-                {selectedTask.estimacionHoras && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>Horas estimadas: </span>{selectedTask.estimacionHoras}h</div>
-                )}
-                {selectedTask.asignadoA && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>Asignado a: </span>{selectedTask.asignadoA.nombre}</div>
-                )}
-                {selectedTask.descripcion && (
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Descripción: </span>
-                    <p style={{ marginTop: '0.25rem', color: 'var(--text-dim)', whiteSpace: 'pre-wrap' }}>{selectedTask.descripcion}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="perfil-section" style={{ padding: '2rem', textAlign: 'center' }}>
-              <p style={{ color: 'var(--text-muted)' }}>Selecciona una tarea para ver detalles</p>
-            </div>
-          )}
-
-          <div className="perfil-section" style={{ padding: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+        <aside className="tareas-sidebar">
+          <div className="tareas-calendar">
+            <div className="tareas-calendar-header">
               <button onClick={() => navMonth(-1)} className="btn-secondary" style={{ width: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}>‹</button>
-              <strong style={{ fontSize: '0.9rem' }}>{MONTHS[calMonth]} {calYear}</strong>
+              <strong>{MONTHS[calMonth]} {calYear}</strong>
               <button onClick={() => navMonth(1)} className="btn-secondary" style={{ width: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}>›</button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
+            <div className="tareas-calendar-grid">
               {DAYS.map(d => (
-                <div key={d} style={{ fontSize: '0.7rem', color: 'var(--text-dim)', padding: '0.3rem 0' }}>{d}</div>
+                <div key={d} className="tareas-calendar-day-header">{d}</div>
               ))}
               {calDays.map((day, i) => {
                 const dateStr = day.toISOString().slice(0, 10);
@@ -207,32 +295,66 @@ export default function ListaTareas() {
                 return (
                   <div
                     key={i}
+                    className={`tareas-calendar-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${!isCurrent ? 'dimmed' : ''}`}
                     onClick={() => handleDayClick(day)}
-                    style={{
-                      padding: '0.35rem 0', fontSize: '0.8rem', cursor: 'pointer',
-                      borderRadius: '4px', position: 'relative',
-                      background: isSelected ? 'var(--accent)' : isToday ? 'var(--bg-card-hover)' : 'transparent',
-                      color: isSelected ? '#fff' : isCurrent ? 'var(--text)' : 'var(--text-dim)',
-                      opacity: isCurrent ? 1 : 0.35,
-                      transition: 'var(--transition)',
-                    }}
-                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-card-hover)'; }}
-                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = isToday ? 'var(--bg-card-hover)' : 'transparent'; }}
                   >
                     {day.getDate()}
-                    {hasTask && (
-                      <span style={{
-                        position: 'absolute', bottom: '2px', left: '50%', transform: 'translateX(-50%)',
-                        width: '4px', height: '4px', borderRadius: '50%',
-                        background: isSelected ? '#fff' : PRIORIDAD_COLOR.critica,
-                      }} />
-                    )}
+                    {hasTask && <span className="tareas-calendar-dot" />}
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
+
+          {selectedTask ? (
+            <div className="tarea-detalle">
+              <h3 className="tarea-detalle-titulo">{selectedTask.titulo}</h3>
+              <div className="tarea-detalle-info">
+                <div className="tarea-detalle-row">
+                  <span className="tarea-detalle-label">Estado</span>
+                  <span className={`badge ${ESTADO_BADGE[selectedTask.estado]}`}>{ESTADO_LABEL[selectedTask.estado]}</span>
+                </div>
+                <div className="tarea-detalle-row">
+                  <span className="tarea-detalle-label">Prioridad</span>
+                  <span style={{ color: PRIORIDAD_COLOR[selectedTask.prioridad], fontWeight: 600 }}>{PRIORIDAD_LABEL[selectedTask.prioridad]}</span>
+                </div>
+                <div className="tarea-detalle-row">
+                  <span className="tarea-detalle-label">Proyecto</span>
+                  <span>{selectedTask.proyecto.nombre}</span>
+                </div>
+                {selectedTask.fechaVencimiento && (
+                  <div className="tarea-detalle-row">
+                    <span className="tarea-detalle-label">Vence</span>
+                    <span>{new Date(selectedTask.fechaVencimiento).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {selectedTask.estimacionHoras && (
+                  <div className="tarea-detalle-row">
+                    <span className="tarea-detalle-label">Horas estimadas</span>
+                    <span>{selectedTask.estimacionHoras}h</span>
+                  </div>
+                )}
+                {selectedTask.asignadoA && (
+                  <div className="tarea-detalle-row">
+                    <span className="tarea-detalle-label">Asignado a</span>
+                    <span>{selectedTask.asignadoA.nombre}</span>
+                  </div>
+                )}
+              </div>
+              {selectedTask.descripcion && (
+                <div className="tarea-detalle-desc">
+                  <span className="tarea-detalle-label">Descripción</span>
+                  <p>{selectedTask.descripcion}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="tareas-sidebar-empty">
+              <IconCheckSquare />
+              <p>Selecciona una tarea para ver detalles</p>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );
