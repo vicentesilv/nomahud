@@ -376,71 +376,54 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
   const puedeEditar = esTexto || esDocx || esXlsx || esPptx;
 
   return mode === 'pagina' ? (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 2rem)' }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '0.75rem 1rem',
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-card)',
-      }}>
-        <strong style={{ fontSize: '0.95rem' }}>{doc.nombre}</strong>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {editMsg && <span style={{ color: 'var(--error)', fontSize: '0.85rem' }}>{editMsg}</span>}
+    <div className="visor-pagina">
+      <div className="visor-toolbar">
+        <strong className="visor-titulo">{doc.nombre}</strong>
+        <div className="visor-acciones">
+          {editMsg && <span className="visor-msg">{editMsg}</span>}
           {saving && <span className="loading" style={{ fontSize: '0.85rem' }}>Guardando...</span>}
           {editando ? (
             <>
-              <button onClick={guardar} className="btn-primary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>
+              <button onClick={guardar} className="btn-primary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
                 Guardar
               </button>
-              <button onClick={cancelarEdicion} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>
+              <button onClick={cancelarEdicion} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
                 Cancelar
               </button>
             </>
           ) : (
             <>
               {puedeEditar && (
-                <button onClick={iniciarEdicion} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>
+                <button onClick={iniciarEdicion} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
                   Editar
                 </button>
               )}
-              <button onClick={() => onDownload(doc)} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>
+              <button onClick={() => onDownload(doc)} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
                 Descargar
               </button>
             </>
           )}
-          <button onClick={onClose} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto', color: 'var(--error)' }}>
+          <button onClick={onClose} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
             Volver
           </button>
         </div>
       </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+      <div className="visor-contenido">
         {renderContenido()}
       </div>
     </div>
   ) : (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.85)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '2rem',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{ display: 'flex', flexDirection: 'column', maxWidth: '90vw', maxHeight: '90vh' }}
-      >
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '0.75rem 1rem',
-        }}>
-          <strong style={{ fontSize: '0.95rem' }}>{doc.nombre}</strong>
-          <button onClick={onClose} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto', color: 'var(--error)' }}>
+    <div className="visor-modal-overlay" onClick={onClose}>
+      <div className="visor-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="visor-modal-header">
+          <strong className="visor-titulo">{doc.nombre}</strong>
+          <button onClick={onClose} className="btn-icon-only" aria-label="Cerrar">
             ✕
           </button>
         </div>
-        {renderContenido()}
+        <div className="visor-contenido">
+          {renderContenido()}
+        </div>
       </div>
     </div>
   );

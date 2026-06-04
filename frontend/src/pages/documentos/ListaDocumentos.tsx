@@ -17,6 +17,55 @@ interface Documento {
 interface Proyecto { id: number; nombre: string }
 interface Viaje { id: number; destino: string }
 
+function IconUpload() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function IconDownload() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+function IconFile() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+  );
+}
+
+function iconoDocumento(mime: string, ext: string) {
+  if (mime.startsWith('image/')) return '🖼';
+  if (ext === 'pdf') return '📄';
+  if (ext === 'docx') return '📝';
+  if (ext === 'xlsx') return '📊';
+  if (ext === 'pptx') return '📽';
+  return '📁';
+}
+
 export default function ListaDocumentos() {
   const [docs, setDocs] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +182,6 @@ export default function ListaDocumentos() {
         setVisorMode('pagina');
         setVisorLoading(true);
         try {
-          const ext = doc.nombre.split('.').pop()?.toLowerCase();
           if (ext === 'docx') {
             const buf = await blob.arrayBuffer();
             const result = await mammoth.convertToHtml({ arrayBuffer: buf });
@@ -225,16 +273,16 @@ export default function ListaDocumentos() {
         onSaved={cargar}
       />
     ) : (
-    <div>
+    <div className="page-documentos">
       <div className="page-header">
         <h1>Documentos</h1>
       </div>
 
       {msg && <div className="error-msg">{msg}</div>}
 
-      <div className="perfil-section">
+      <div className="documentos-section">
         <h3>Subir documento</h3>
-        <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <form onSubmit={handleUpload} className="documentos-upload-form">
           <div className="field-row">
             <div className="field" style={{ flex: 1 }}>
               <label>Archivo *</label>
@@ -248,32 +296,36 @@ export default function ListaDocumentos() {
               </select>
             </div>
           </div>
-          <div className="field">
-            <label>{uploadTipo === 'proyecto' ? 'Proyecto' : 'Viaje'}</label>
-            <select value={uploadEntidad} onChange={(e) => setUploadEntidad(e.target.value)}>
-              <option value="">— Sin asignar —</option>
-              {entidadesLoading && <option disabled>Cargando...</option>}
-              {uploadTipo === 'proyecto'
-                ? proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)
-                : viajes.map((v) => <option key={v.id} value={v.id}>{v.destino}</option>)
-              }
-            </select>
+          <div className="field-row">
+            <div className="field">
+              <label>{uploadTipo === 'proyecto' ? 'Proyecto' : 'Viaje'}</label>
+              <select value={uploadEntidad} onChange={(e) => setUploadEntidad(e.target.value)}>
+                <option value="">— Sin asignar —</option>
+                {entidadesLoading && <option disabled>Cargando...</option>}
+                {uploadTipo === 'proyecto'
+                  ? proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)
+                  : viajes.map((v) => <option key={v.id} value={v.id}>{v.destino}</option>)
+                }
+              </select>
+            </div>
+            <div className="field">
+              <label>Nombre (opcional)</label>
+              <input value={uploadNombre} onChange={(e) => setUploadNombre(e.target.value)} placeholder="Dejar vacío para usar el nombre del archivo" />
+            </div>
           </div>
-          <div className="field">
-            <label>Nombre personalizado (opcional)</label>
-            <input value={uploadNombre} onChange={(e) => setUploadNombre(e.target.value)} placeholder="Dejar vacío para usar el nombre del archivo" />
-          </div>
-          <button type="submit" className="btn-primary" style={{ width: 'auto' }}>Subir</button>
+          <button type="submit" className="btn-primary btn-icon" style={{ width: 'auto' }}>
+            <IconUpload />
+            Subir
+          </button>
         </form>
       </div>
 
-      <div style={{ margin: '1rem 0', display: 'flex', gap: '0.5rem' }}>
-        {['', 'proyecto', 'viaje'].map((t) => (
+      <div className="documentos-filtros">
+        {(['', 'proyecto', 'viaje'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setFiltro(t)}
-            className={filtro === t ? 'btn-primary' : 'btn-secondary'}
-            style={{ width: 'auto', fontSize: '0.85rem' }}
+            className={`documentos-filtro-btn ${filtro === t ? 'active' : ''}`}
           >
             {t === '' ? 'Todos' : t === 'proyecto' ? 'Proyectos' : 'Viajes'}
           </button>
@@ -281,52 +333,64 @@ export default function ListaDocumentos() {
       </div>
 
       {loading ? (
-        <div className="loading">Cargando documentos...</div>
+        <div className="documentos-grid">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton-card">
+              <div className="skeleton-line w-60" />
+              <div className="skeleton-line w-40" />
+              <div className="skeleton-line w-24" />
+            </div>
+          ))}
+        </div>
       ) : docs.length === 0 ? (
-        <div className="perfil-section" style={{ textAlign: 'center', padding: '3rem' }}>
-          <p style={{ color: 'var(--text-muted)' }}>No hay documentos.</p>
+        <div className="documentos-empty">
+          <IconFile />
+          <h3>No hay documentos</h3>
+          <p>Subí tu primer documento para empezar.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {docs.map((doc) => (
-            <div key={doc.id} className="perfil-section" style={{ padding: '0.75rem 1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <strong
-                      onClick={() => verDocumento(doc)}
-                      style={{ cursor: 'pointer', color: 'var(--accent)' }}
-                    >
-                      {doc.nombre}
-                    </strong>
-                    <span style={{
-                      fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '999px',
-                      border: '1px solid var(--accent)', color: 'var(--accent)',
-                    }}>
-                      {doc.tipo}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
-                    {formatSize(doc.size)} · {new Date(doc.createdAt).toLocaleDateString()}
+        <div className="documentos-grid">
+          {docs.map((doc, idx) => {
+            const ext = doc.nombre.split('.').pop()?.toLowerCase() || '';
+            return (
+              <div key={doc.id} className="documento-card" style={{ animationDelay: `${idx * 0.04}s` }}>
+                <div className="documento-card-icon">{iconoDocumento(doc.mimeType, ext)}</div>
+                <div className="documento-card-info">
+                  <span
+                    className="documento-card-nombre"
+                    onClick={() => verDocumento(doc)}
+                    title="Ver documento"
+                  >
+                    {doc.nombre}
+                  </span>
+                  <div className="documento-card-meta">
+                    <span className="documento-card-type">{doc.tipo}</span>
+                    <span>{formatSize(doc.size)}</span>
+                    <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
                     {doc.entidadId && (
-                      ` · ${doc.tipo === 'proyecto'
-                        ? proyectos.find(p => p.id === doc.entidadId)?.nombre || `ID: ${doc.entidadId}`
-                        : viajes.find(v => v.id === doc.entidadId)?.destino || `ID: ${doc.entidadId}`
-                      }`
+                      <span>
+                        {doc.tipo === 'proyecto'
+                          ? proyectos.find(p => p.id === doc.entidadId)?.nombre || `ID: ${doc.entidadId}`
+                          : viajes.find(v => v.id === doc.entidadId)?.destino || `ID: ${doc.entidadId}`
+                        }
+                      </span>
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <button onClick={() => descargar(doc)} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>
-                    Descargar
+                <div className="documento-card-actions">
+                  <button onClick={() => verDocumento(doc)} className="btn-icon-only-sm" title="Ver">
+                    <IconEye />
                   </button>
-                  <button onClick={() => eliminar(doc.id)} className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', width: 'auto', color: 'var(--error)' }}>
-                    ✕
+                  <button onClick={() => descargar(doc)} className="btn-icon-only-sm" title="Descargar">
+                    <IconDownload />
+                  </button>
+                  <button onClick={() => eliminar(doc.id)} className="btn-icon-only-sm" title="Eliminar" style={{ color: 'var(--error)' }}>
+                    <IconTrash />
                   </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
