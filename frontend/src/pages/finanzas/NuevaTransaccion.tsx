@@ -13,6 +13,14 @@ const CATEGORIAS = [
 
 const MONEDAS = ['USD', 'EUR', 'ARS', 'BRL', 'MXN', 'COP', 'CLP', 'PEN', 'CRC'];
 
+function IconArrowLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
 export default function NuevaTransaccion() {
   const navigate = useNavigate();
   const [clientes, setClientes] = useState<ClienteOption[]>([]);
@@ -84,12 +92,15 @@ export default function NuevaTransaccion() {
   };
 
   return (
-    <div>
+    <div className="page-finanzas">
       <div className="page-header">
+        <button className="btn-icon-only" onClick={() => navigate('/finanzas')} aria-label="Volver">
+          <IconArrowLeft />
+        </button>
         <h1>Nueva transacción</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="perfil-form">
+      <form onSubmit={handleSubmit} className="perfil-form finanzas-form">
         {error && <div className="error-msg">{error}</div>}
 
         <div className="field-row">
