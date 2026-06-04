@@ -31,17 +31,11 @@ interface Proyecto {
 }
 
 const ESTADOS_PROYECTO: Record<string, string> = {
-  activo: 'Activo',
-  completado: 'Completado',
-  en_pausa: 'En pausa',
-  cancelado: 'Cancelado',
+  activo: 'Activo', completado: 'Completado', en_pausa: 'En pausa', cancelado: 'Cancelado',
 };
 
 const PRIORIDADES: Record<string, string> = {
-  baja: 'Baja',
-  media: 'Media',
-  alta: 'Alta',
-  critica: 'Crítica',
+  baja: 'Baja', media: 'Media', alta: 'Alta', critica: 'Crítica',
 };
 
 const COLUMNAS = [
@@ -49,6 +43,38 @@ const COLUMNAS = [
   { key: 'en_progreso', label: 'En progreso' },
   { key: 'completada', label: 'Completada' },
 ];
+
+function IconArrowLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function IconEdit() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
 
 export default function DetalleProyecto() {
   const { id } = useParams();
@@ -168,158 +194,143 @@ export default function DetalleProyecto() {
 
   const tareas = proyecto.tareas || [];
   const tareasPorColumna = (estado: string) => tareas.filter((t) => t.estado === estado);
+  const badgeEstado = proyecto.estado === 'activo' || proyecto.estado === 'completado' ? 'badge-success' : proyecto.estado === 'en_pausa' ? 'badge-warning' : 'badge-error';
 
   return (
-    <div className="page-perfil" style={{ maxWidth: '100%' }}>
-      <div className="page-header">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-            <h1 style={{ margin: 0 }}>{proyecto.nombre}</h1>
-            <span className={`badge badge-${proyecto.estado === 'activo' ? 'success' : proyecto.estado === 'completado' ? 'success' : proyecto.estado === 'en_pausa' ? 'warning' : 'error'}`}>
-              {ESTADOS_PROYECTO[proyecto.estado] || proyecto.estado}
-            </span>
-            <span className="badge badge-warning" style={{ background: 'rgba(124,58,237,0.1)', color: 'var(--primary)', border: '1px solid rgba(124,58,237,0.2)' }}>
+    <div className="proyecto-detalle">
+      <div className="proyecto-header">
+        <div className="proyecto-header-left">
+          <h1 className="proyecto-header-titulo">
+            {proyecto.nombre}
+            <span className={`badge ${badgeEstado}`}>{ESTADOS_PROYECTO[proyecto.estado] || proyecto.estado}</span>
+            <span className="badge-prioridad" style={{
+              background: `${proyecto.prioridad === 'critica' ? '#ef4444' : proyecto.prioridad === 'alta' ? '#f59e0b' : proyecto.prioridad === 'media' ? '#06b6d4' : '#8888a0'}1a`,
+              color: proyecto.prioridad === 'critica' ? '#ef4444' : proyecto.prioridad === 'alta' ? '#f59e0b' : proyecto.prioridad === 'media' ? '#06b6d4' : '#8888a0',
+              borderColor: `${proyecto.prioridad === 'critica' ? '#ef4444' : proyecto.prioridad === 'alta' ? '#f59e0b' : proyecto.prioridad === 'media' ? '#06b6d4' : '#8888a0'}40`,
+            }}>
               {PRIORIDADES[proyecto.prioridad] || proyecto.prioridad}
             </span>
-          </div>
+          </h1>
           {proyecto.clienteRel && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            <p className="proyecto-header-cliente">
               Cliente: {proyecto.clienteRel.nombre}{proyecto.clienteRel.empresa ? ` (${proyecto.clienteRel.empresa})` : ''}
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={abrirEditarProyecto} className="btn-secondary" style={{ width: 'auto' }}>
-            ✎ Editar proyecto
+        <div className="proyecto-header-actions">
+          <button onClick={abrirEditarProyecto} className="btn-secondary btn-icon">
+            <IconEdit />
+            Editar
           </button>
-          <button onClick={abrirFormNueva} className="btn-primary" style={{ width: 'auto' }}>
-            + Nueva tarea
+          <button onClick={abrirFormNueva} className="btn-primary btn-icon">
+            <IconPlus />
+            Nueva tarea
           </button>
-          <button onClick={() => navigate('/proyectos')} className="btn-secondary">Volver</button>
-          <button onClick={eliminarProyecto} className="btn-secondary" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)' }}>
-            ✕ Eliminar
+          <button onClick={() => navigate('/proyectos')} className="btn-secondary btn-icon">
+            <IconArrowLeft />
+            Volver
+          </button>
+          <button onClick={eliminarProyecto} className="btn-secondary btn-icon" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)' }}>
+            <IconTrash />
+            Eliminar
           </button>
         </div>
       </div>
 
-      {/* Project info */}
-      <div className="perfil-section" style={{ marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
-          {proyecto.descripcion && (
-            <div style={{ flex: '1 1 100%' }}>
-              <strong style={{ color: 'var(--text-muted)' }}>Descripción:</strong>
-              <p style={{ marginTop: '0.25rem' }}>{proyecto.descripcion}</p>
-            </div>
-          )}
-          {proyecto.fechaInicio && (
-            <div><strong style={{ color: 'var(--text-muted)' }}>Inicio:</strong> {proyecto.fechaInicio}</div>
-          )}
-          {proyecto.fechaFin && (
-            <div><strong style={{ color: 'var(--text-muted)' }}>Fin:</strong> {proyecto.fechaFin}</div>
-          )}
-          {proyecto.ganancia != null && (
-            <div><strong style={{ color: 'var(--text-muted)' }}>Ganancia:</strong> ${Number(proyecto.ganancia).toLocaleString()}</div>
-          )}
-          <div><strong style={{ color: 'var(--text-muted)' }}>Tareas:</strong> {tareas.length} ({tareas.filter(t => t.estado !== 'completada' && t.estado !== 'cancelada').length} pendientes)</div>
+      <div className="proyecto-info-card">
+        {proyecto.descripcion && (
+          <div className="proyecto-info-desc">
+            <span className="proyecto-info-label">Descripción</span>
+            <p>{proyecto.descripcion}</p>
+          </div>
+        )}
+        {proyecto.fechaInicio && (
+          <div className="proyecto-info-item">
+            <span className="proyecto-info-label">Inicio</span>
+            <span className="proyecto-info-value">{new Date(proyecto.fechaInicio).toLocaleDateString()}</span>
+          </div>
+        )}
+        {proyecto.fechaFin && (
+          <div className="proyecto-info-item">
+            <span className="proyecto-info-label">Fin</span>
+            <span className="proyecto-info-value">{new Date(proyecto.fechaFin).toLocaleDateString()}</span>
+          </div>
+        )}
+        {proyecto.ganancia != null && (
+          <div className="proyecto-info-item">
+            <span className="proyecto-info-label">Ganancia</span>
+            <span className="proyecto-info-value">${Number(proyecto.ganancia).toLocaleString()}</span>
+          </div>
+        )}
+        <div className="proyecto-info-item">
+          <span className="proyecto-info-label">Tareas</span>
+          <span className="proyecto-info-value">{tareas.length} ({tareas.filter(t => t.estado !== 'completada').length} pendientes)</span>
         </div>
       </div>
 
-      {/* Kanban board */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
-        {COLUMNAS.map((col) => (
-          <div key={col.key} className="perfil-section" style={{ padding: '1rem', minHeight: '120px' }}>
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {col.label}
-              <span style={{ marginLeft: '0.5rem', color: 'var(--text-dim)', fontWeight: 400 }}>({tareasPorColumna(col.key).length})</span>
-            </h3>
-            {tareasPorColumna(col.key).length === 0 ? (
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem 0' }}>
-                Sin tareas
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {tareasPorColumna(col.key).map((t) => (
-                  <div
-                    key={t.id}
-                    className="perfil-section"
-                    style={{
-                      padding: '0.75rem',
-                      cursor: 'pointer',
-                      border: `1px solid ${t.prioridad === 'critica' ? 'rgba(239,68,68,0.3)' : t.prioridad === 'alta' ? 'rgba(245,158,11,0.3)' : 'var(--border)'}`,
-                    }}
-                    onClick={() => abrirFormEditar(t)}
-                  >
-                    <div style={{ fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.3rem' }}>{t.titulo}</div>
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center', fontSize: '0.75rem' }}>
-                      <span className={`badge badge-${t.prioridad === 'critica' || t.prioridad === 'alta' ? 'error' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
+      <div className="kanban-grid">
+        {COLUMNAS.map((col) => {
+          const colTareas = tareasPorColumna(col.key);
+          return (
+            <div key={col.key} className="kanban-columna">
+              <div className="kanban-columna-header">
+                <span className="kanban-columna-titulo">{col.label}</span>
+                <span className="kanban-columna-count">{colTareas.length}</span>
+              </div>
+              {colTareas.length === 0 ? (
+                <p className="kanban-columna-empty">Sin tareas</p>
+              ) : (
+                colTareas.map((t) => (
+                  <div key={t.id} className={`kanban-tarea kanban-tarea-prioridad ${t.prioridad}`} onClick={() => abrirFormEditar(t)}>
+                    <div className="kanban-tarea-titulo">{t.titulo}</div>
+                    <div className="kanban-tarea-meta">
+                      <span className="badge-prioridad" style={{
+                        background: `${t.prioridad === 'critica' ? '#ef4444' : t.prioridad === 'alta' ? '#f59e0b' : t.prioridad === 'media' ? '#06b6d4' : '#8888a0'}1a`,
+                        color: t.prioridad === 'critica' ? '#ef4444' : t.prioridad === 'alta' ? '#f59e0b' : t.prioridad === 'media' ? '#06b6d4' : '#8888a0',
+                        borderColor: `${t.prioridad === 'critica' ? '#ef4444' : t.prioridad === 'alta' ? '#f59e0b' : t.prioridad === 'media' ? '#06b6d4' : '#8888a0'}40`,
+                        padding: '0.1rem 0.4rem', fontSize: '0.65rem',
+                      }}>
                         {PRIORIDADES[t.prioridad] || t.prioridad}
                       </span>
-                      {t.estimacionHoras && <span style={{ color: 'var(--text-dim)' }}>{t.estimacionHoras}h</span>}
+                      {t.estimacionHoras ? <span>{t.estimacionHoras}h</span> : null}
                     </div>
-                    {/* Move buttons */}
-                    <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem' }}>
+                    <div className="kanban-tarea-actions">
                       {col.key === 'pendiente' && (
-                        <button
-                          className="btn-secondary"
-                          style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}
-                          onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}
-                        >
+                        <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}>
                           → Iniciar
                         </button>
                       )}
                       {col.key === 'en_progreso' && (
                         <>
-                          <button
-                            className="btn-secondary"
-                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}
-                            onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'completada'); }}
-                          >
+                          <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'completada'); }}>
                             ✓ Completar
                           </button>
-                          <button
-                            className="btn-secondary"
-                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}
-                            onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'pendiente'); }}
-                          >
+                          <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'pendiente'); }}>
                             ← Volver
                           </button>
                         </>
                       )}
                       {col.key === 'completada' && (
-                        <button
-                          className="btn-secondary"
-                          style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}
-                          onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}
-                        >
+                        <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}>
                           ← Reabrir
                         </button>
                       )}
-                      <button
-                        className="btn-secondary"
-                        style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)' }}
-                        onClick={(e) => { e.stopPropagation(); eliminarTarea(t.id); }}
-                      >
+                      <button className="kanban-tarea-btn kanban-tarea-btn-danger" onClick={(e) => { e.stopPropagation(); eliminarTarea(t.id); }}>
                         ✕
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                ))
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Task form modal */}
       {showForm && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }} onClick={() => setShowForm(false)}>
-          <div className="perfil-form" style={{ maxWidth: '480px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1.25rem' }}>
-              {editandoTarea ? 'Editar tarea' : 'Nueva tarea'}
-            </h3>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>{editandoTarea ? 'Editar tarea' : 'Nueva tarea'}</h3>
             <form onSubmit={handleTareaSubmit}>
               {tareaError && <div className="error-msg">{tareaError}</div>}
               <div className="field">
@@ -333,12 +344,14 @@ export default function DetalleProyecto() {
               <div className="field-row">
                 <div className="field">
                   <label>Prioridad</label>
-                  <select value={tareaForm.prioridad} onChange={(e) => setTareaForm({ ...tareaForm, prioridad: e.target.value })}>
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                    <option value="critica">Crítica</option>
-                  </select>
+                  <div className="select-wrapper">
+                    <select value={tareaForm.prioridad} onChange={(e) => setTareaForm({ ...tareaForm, prioridad: e.target.value })}>
+                      <option value="baja">Baja</option>
+                      <option value="media">Media</option>
+                      <option value="alta">Alta</option>
+                      <option value="critica">Crítica</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="field">
                   <label>Estimación (horas)</label>
@@ -349,7 +362,7 @@ export default function DetalleProyecto() {
                 <label>Fecha de vencimiento</label>
                 <input type="datetime-local" value={tareaForm.fechaVencimiento} onChange={(e) => setTareaForm({ ...tareaForm, fechaVencimiento: e.target.value })} />
               </div>
-              <div className="form-actions">
+              <div className="form-actions" style={{ marginTop: '1.25rem' }}>
                 <button type="submit" className="btn-primary">
                   {editandoTarea ? 'Guardar cambios' : 'Crear tarea'}
                 </button>
@@ -360,34 +373,32 @@ export default function DetalleProyecto() {
         </div>
       )}
 
-      {/* Project edit modal */}
       {showProyectoForm && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }} onClick={() => setShowProyectoForm(false)}>
-          <div className="perfil-form" style={{ maxWidth: '400px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1.25rem' }}>Editar proyecto</h3>
+        <div className="modal-overlay" onClick={() => setShowProyectoForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Editar proyecto</h3>
             <form onSubmit={guardarProyecto}>
               <div className="field">
                 <label>Estado</label>
-                <select value={proyectoForm.estado} onChange={(e) => setProyectoForm({ ...proyectoForm, estado: e.target.value })}>
-                  <option value="activo">Activo</option>
-                  <option value="en_pausa">En pausa</option>
-                  <option value="completado">Completado</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
+                <div className="select-wrapper">
+                  <select value={proyectoForm.estado} onChange={(e) => setProyectoForm({ ...proyectoForm, estado: e.target.value })}>
+                    <option value="activo">Activo</option>
+                    <option value="en_pausa">En pausa</option>
+                    <option value="completado">Completado</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </div>
               </div>
               <div className="field">
                 <label>Ganancia (USD)</label>
                 <input type="number" value={proyectoForm.ganancia} onChange={(e) => setProyectoForm({ ...proyectoForm, ganancia: e.target.value })} placeholder="5000" />
               </div>
-              {proyecto?.estado !== 'completado' && proyectoForm.estado === 'completado' && proyectoForm.ganancia && (
+              {[proyecto?.estado, proyectoForm.estado].includes('completado') && proyectoForm.ganancia && proyecto?.estado !== 'completado' && (
                 <div className="success-msg" style={{ fontSize: '0.8rem' }}>
-                  Al marcar como completado se creará automáticamente un ingreso en Finanzas por ${Number(proyectoForm.ganancia).toLocaleString()}
+                  Al marcar como completado se creará un ingreso en Finanzas por ${Number(proyectoForm.ganancia).toLocaleString()}
                 </div>
               )}
-              <div className="form-actions">
+              <div className="form-actions" style={{ marginTop: '1.25rem' }}>
                 <button type="submit" className="btn-primary">Guardar cambios</button>
                 <button type="button" onClick={() => setShowProyectoForm(false)} className="btn-secondary">Cancelar</button>
               </div>
