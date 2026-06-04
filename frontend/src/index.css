@@ -451,21 +451,28 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(10, 10, 15, 0.55);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
   backdrop-filter: blur(3px);
 }
 
 .auth-card {
   position: relative;
-  background: rgba(26, 26, 38, 0.8);
+  background: color-mix(in srgb, var(--bg-card) 85%, transparent);
   padding: 2.75rem 2.5rem;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   width: 100%;
   max-width: 420px;
   backdrop-filter: blur(24px);
   animation: cardEntrance 0.45s ease-out;
+}
+
+.auth-theme-switch {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
 }
 
 @keyframes cardEntrance {
