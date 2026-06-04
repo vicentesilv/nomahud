@@ -13,6 +13,14 @@ function safeDate(raw: string): string {
   }
 }
 
+function IconArrowLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
 export default function NuevoViaje() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -61,12 +69,15 @@ export default function NuevoViaje() {
   };
 
   return (
-    <div>
+    <div className="page-viajes">
       <div className="page-header">
+        <button className="btn-icon-only" onClick={() => navigate('/viajes')} aria-label="Volver">
+          <IconArrowLeft />
+        </button>
         <h1>Nuevo viaje</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="perfil-form">
+      <form onSubmit={handleSubmit} className="perfil-form viajes-form">
         {error && <div className="error-msg">{error}</div>}
 
         <div className="field">

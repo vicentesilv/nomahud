@@ -1859,11 +1859,9 @@ body {
 }
 
 .page-clientes .page-header-actions {
-  position: fixed;
-    top: 4.7rem;
-    right: 1rem;
-    z-index: 50;
-    width: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .page-clientes .page-header-left {
@@ -2637,6 +2635,359 @@ body {
 
 /* Form */
 .tiempo-form {
+  animation: fadeIn 0.3s ease-out;
+}
+
+
+/* ===== VIAJES ===== */
+.page-viajes {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.viajes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.75rem;
+}
+
+.viajes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+}
+
+.viajes-empty svg {
+  width: 40px;
+  height: 40px;
+  opacity: 0.4;
+}
+
+.viajes-empty h3 {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.viajes-empty p {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.viaje-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.15rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--transition);
+  animation: cardEntrance 0.3s ease-out both;
+}
+
+.viaje-card:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-glow);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+
+.viaje-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.viaje-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viaje-card-estado {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.viaje-card-destino {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.viaje-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.viaje-card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Detail */
+.page-viaje-detalle .page-header h1 {
+  font-size: 1.3rem;
+}
+
+.viaje-detalle-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.viaje-detalle-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.viaje-detalle-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.viaje-detalle-hero-info {
+  min-width: 0;
+}
+
+.viaje-detalle-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid;
+  margin-bottom: 0.3rem;
+  text-transform: capitalize;
+}
+
+.viaje-detalle-hero-info h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+}
+
+.viaje-detalle-hero-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+
+.viaje-detalle-hero-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.viaje-detalle-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.viaje-detalle-section h3 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin: 0 0 0.75rem;
+}
+
+.viaje-detalle-notas-texto {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Itinerary form */
+.viaje-itinerario-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.viaje-itinerario-vacio {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Itinerary list */
+.viaje-itinerario-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.viaje-itinerario-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+
+.viaje-itinerario-item:hover {
+  border-color: var(--border-glow);
+}
+
+.viaje-itinerario-item-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+  min-width: 1.5rem;
+  padding-top: 0.1rem;
+}
+
+.viaje-itinerario-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.viaje-itinerario-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.viaje-itinerario-item-header strong {
+  font-size: 0.88rem;
+}
+
+.viaje-itinerario-item-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.viaje-itinerario-item-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 0.1rem;
+}
+
+.viaje-itinerario-item-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+
+.viaje-itinerario-item-costo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: #f59e0b;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+/* Estado buttons */
+.viaje-estado-btns {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.viaje-estado-btn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition);
+}
+
+.viaje-estado-btn:hover:not(:disabled) {
+  border-color: var(--btn-color, var(--accent));
+  color: var(--btn-color, var(--accent));
+}
+
+.viaje-estado-btn.active {
+  background: color-mix(in srgb, var(--btn-color, var(--accent)) 15%, transparent);
+  border-color: var(--btn-color, var(--accent));
+  color: var(--btn-color, var(--accent));
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* Icon-only small button */
+.btn-icon-only-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-icon-only-sm:hover {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Form */
+.viajes-form {
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -4395,11 +4746,9 @@ body {
   }
 
   .page-finanzas .page-header-actions {
-    position: fixed;
-    top: 4.7rem;
-    right: 1rem;
-    z-index: 50;
-    width: auto;
+     display: flex;
+  align-items: center;
+  gap: 0.75rem;
   }
 
   .page-finanzas .page-header-actions .btn-primary {
@@ -4458,6 +4807,36 @@ body {
   .tiempo-filtro-select {
     width: 100%;
     min-width: 0;
+  }
+
+  .viajes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-viajes .page-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .viaje-detalle-hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .viaje-detalle-hero-meta {
+    justify-content: center;
+  }
+
+  .viaje-detalle-section h3 {
+    text-align: center;
+  }
+
+  .viaje-itinerario-form .field-row {
+    flex-direction: column;
+  }
+
+  .viaje-estado-btns {
+    justify-content: center;
   }
 
   @media (max-width: 400px) {

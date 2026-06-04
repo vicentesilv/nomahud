@@ -24,7 +24,7 @@ interface Viaje {
   itinerario: ItinerarioItem[];
 }
 
-const badges: Record<string, { label: string; color: string }> = {
+const estados: Record<string, { label: string; color: string }> = {
   planificado: { label: 'Planificado', color: 'var(--accent)' },
   en_curso: { label: 'En curso', color: '#22c55e' },
   completado: { label: 'Completado', color: '#6366f1' },
@@ -40,6 +40,62 @@ function safeDate(raw: string): string {
   } catch {
     return '';
   }
+}
+
+function IconArrowLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
+function IconEdit() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+function IconMapPin() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function IconCalendar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function IconDollar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
 }
 
 export default function DetalleViaje() {
@@ -174,61 +230,66 @@ export default function DetalleViaje() {
 
   if (!viaje) return <div className="loading">Cargando viaje...</div>;
 
-  const badge = badges[viaje.estado] || badges.planificado;
+  const badge = estados[viaje.estado] || estados.planificado;
 
   return (
-    <div className="page-perfil">
+    <div className="page-viajes page-viaje-detalle">
       <div className="page-header">
+        <button className="btn-icon-only" onClick={() => navigate('/viajes')} aria-label="Volver">
+          <IconArrowLeft />
+        </button>
         <h1>{viaje.destino}</h1>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="page-header-actions">
           {!editando && (
             <>
-              <button onClick={() => setEditando(true)} className="btn-secondary">✎ Editar</button>
-              <button onClick={eliminar} className="btn-secondary" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)' }}>✕ Eliminar</button>
+              <button onClick={() => setEditando(true)} className="btn-secondary btn-icon">
+                <IconEdit />
+                Editar
+              </button>
+              <button onClick={eliminar} className="btn-secondary btn-icon" style={{ color: 'var(--error)' }}>
+                <IconTrash />
+                Eliminar
+              </button>
             </>
           )}
-          <button onClick={() => navigate('/viajes')} className="btn-secondary">Volver</button>
         </div>
       </div>
 
       {msg && <div className={msg.includes('Error') ? 'error-msg' : 'success-msg'}>{msg}</div>}
 
       {!editando ? (
-        <div className="perfil-view">
-          <div className="perfil-section">
-            <h3>✦ Información</h3>
-            <p>
-              <strong>Estado:</strong>{' '}
-              <span style={{
-                fontSize: '0.8rem', padding: '0.15rem 0.6rem', borderRadius: '999px',
-                border: `1px solid ${badge.color}`, color: badge.color,
-              }}>
+        <div className="viaje-detalle-view">
+          <div className="viaje-detalle-hero">
+            <div className="viaje-detalle-icon">
+              <IconMapPin />
+            </div>
+            <div className="viaje-detalle-hero-info">
+              <span className="viaje-detalle-badge" style={{ borderColor: badge.color, color: badge.color }}>
                 {badge.label}
               </span>
-            </p>
-            <p><strong>Destino:</strong> {viaje.destino}</p>
-            <p><strong>Fechas:</strong> {viaje.fechaInicio}{viaje.fechaFin ? ` → ${viaje.fechaFin}` : ' (sin fecha de fin)'}</p>
-            {viaje.presupuesto != null && (
-              <p><strong>Presupuesto:</strong> {Number(viaje.presupuesto).toLocaleString('es-MX', { style: 'currency', currency: viaje.moneda || 'MXN' })}</p>
-            )}
-            {viaje.presupuesto == null && (
-              <p><strong>Presupuesto:</strong> Sin presupuesto</p>
-            )}
+              <h2>{viaje.destino}</h2>
+              <div className="viaje-detalle-hero-meta">
+                <span><IconCalendar /> {viaje.fechaInicio}{viaje.fechaFin ? ` → ${viaje.fechaFin}` : ' (sin fecha de fin)'}</span>
+                {viaje.presupuesto != null && (
+                  <span><IconDollar /> {Number(viaje.presupuesto).toLocaleString('es-MX', { style: 'currency', currency: viaje.moneda || 'MXN' })}</span>
+                )}
+              </div>
+            </div>
           </div>
 
           {viaje.notas && (
-            <div className="perfil-section">
-              <h3>◈ Notas</h3>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{viaje.notas}</p>
+            <div className="viaje-detalle-section">
+              <h3>Notas</h3>
+              <p className="viaje-detalle-notas-texto">{viaje.notas}</p>
             </div>
           )}
 
-          <div className="perfil-section">
-            <h3>◈ Itinerario</h3>
+          <div className="viaje-detalle-section">
+            <h3>Itinerario</h3>
 
             {itemError && <div className="error-msg">{itemError}</div>}
 
-            <form onSubmit={agregarItem} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+            <form onSubmit={agregarItem} className="viaje-itinerario-form">
               <div className="field-row">
                 <div className="field" style={{ flex: 2 }}>
                   <label>Lugar *</label>
@@ -258,38 +319,35 @@ export default function DetalleViaje() {
                     <button type="button" onClick={() => { setEditItemId(null); setItemForm({ lugar: '', fecha: '', descripcion: '', costo: '' }); }} className="btn-secondary" style={{ width: 'auto' }}>Cancelar</button>
                   </div>
                 ) : (
-                  <button type="submit" className="btn-primary" style={{ width: 'auto' }}>+ Agregar lugar</button>
+                  <button type="submit" className="btn-primary" style={{ width: 'auto' }}><IconPlus /> Agregar lugar</button>
                 )}
               </div>
             </form>
 
             {(!viaje.itinerario || viaje.itinerario.length === 0) ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Aún no hay lugares planificados.</p>
+              <p className="viaje-itinerario-vacio">Aún no hay lugares planificados.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className="viaje-itinerario-lista">
                 {viaje.itinerario.map((item, idx) => (
-                  <div key={item.id} style={{
-                    padding: '0.75rem', borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>#{idx + 1}</span>
-                          <strong>{item.lugar}</strong>
+                  <div key={item.id} className="viaje-itinerario-item">
+                    <div className="viaje-itinerario-item-num">#{idx + 1}</div>
+                    <div className="viaje-itinerario-item-content">
+                      <div className="viaje-itinerario-item-header">
+                        <strong>{item.lugar}</strong>
+                        <div className="viaje-itinerario-item-actions">
+                          <button onClick={() => iniciarEditItem(item)} className="btn-icon-only-sm" title="Editar">
+                            <IconEdit />
+                          </button>
+                          <button onClick={() => eliminarItem(item.id)} className="btn-icon-only-sm" title="Eliminar" style={{ color: 'var(--error)' }}>
+                            <IconTrash />
+                          </button>
                         </div>
-                        {item.fecha && <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>📅 {item.fecha}</div>}
-                        {item.descripcion && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{item.descripcion}</div>}
-                        {item.costo != null && (
-                          <div style={{ fontSize: '0.85rem', color: '#f59e0b', marginTop: '0.2rem' }}>
-                            💰 {Number(item.costo).toLocaleString('es-MX', { style: 'currency', currency: viaje.moneda || 'MXN' })}
-                          </div>
-                        )}
                       </div>
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button onClick={() => iniciarEditItem(item)} className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}>✎</button>
-                        <button onClick={() => eliminarItem(item.id)} className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto', color: 'var(--error)' }}>✕</button>
-                      </div>
+                      {item.fecha && <span className="viaje-itinerario-item-meta"><IconCalendar /> {item.fecha}</span>}
+                      {item.descripcion && <p className="viaje-itinerario-item-desc">{item.descripcion}</p>}
+                      {item.costo != null && (
+                        <span className="viaje-itinerario-item-costo"><IconDollar /> {Number(item.costo).toLocaleString('es-MX', { style: 'currency', currency: viaje.moneda || 'MXN' })}</span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -297,22 +355,18 @@ export default function DetalleViaje() {
             )}
           </div>
 
-          <div className="perfil-section">
-            <h3>◈ Cambiar estado</h3>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {Object.entries(badges).map(([key, b]) => (
+          <div className="viaje-detalle-section">
+            <h3>Cambiar estado</h3>
+            <div className="viaje-estado-btns">
+              {Object.entries(estados).map(([key, b]) => (
                 <button
                   key={key}
                   onClick={() => actualizarEstado(key)}
                   disabled={viaje.estado === key}
+                  className={`viaje-estado-btn ${viaje.estado === key ? 'active' : ''}`}
                   style={{
-                    padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '999px',
-                    border: `1px solid ${key === viaje.estado ? b.color : 'rgba(255,255,255,0.1)'}`,
-                    background: key === viaje.estado ? `${b.color}22` : 'transparent',
-                    color: key === viaje.estado ? b.color : 'var(--text-dim)',
-                    cursor: key === viaje.estado ? 'default' : 'pointer',
-                    opacity: key === viaje.estado ? 0.7 : 1,
-                  }}
+                    '--btn-color': b.color,
+                  } as React.CSSProperties}
                 >
                   {b.label}
                 </button>
@@ -321,7 +375,7 @@ export default function DetalleViaje() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="perfil-form">
+        <form onSubmit={handleSubmit} className="perfil-form viajes-form">
           <div className="field">
             <label>Destino *</label>
             <input name="destino" value={form.destino} onChange={(e) => setForm({ ...form, destino: e.target.value })} required />
