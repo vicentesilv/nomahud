@@ -38,6 +38,8 @@ const PRIORIDADES: Record<string, string> = {
   baja: 'Baja', media: 'Media', alta: 'Alta', critica: 'Crítica',
 };
 
+const PRIORIDAD_COLOR: Record<string, string> = { critica: '#ef4444', alta: '#f59e0b', media: '#06b6d4', baja: '#8888a0' };
+
 const COLUMNAS = [
   { key: 'pendiente', label: 'Pendiente' },
   { key: 'en_progreso', label: 'En progreso' },
@@ -76,6 +78,36 @@ function IconTrash() {
   );
 }
 
+function IconClock() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function IconGrid() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
+function IconList() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
+}
+
+const PRIORIDAD_ESTILO = (p: string) => ({
+  background: `${PRIORIDAD_COLOR[p]}1a`,
+  color: PRIORIDAD_COLOR[p],
+  borderColor: `${PRIORIDAD_COLOR[p]}40`,
+});
+
 export default function DetalleProyecto() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -87,6 +119,7 @@ export default function DetalleProyecto() {
   const [tareaError, setTareaError] = useState('');
   const [showProyectoForm, setShowProyectoForm] = useState(false);
   const [proyectoForm, setProyectoForm] = useState({ ganancia: '', estado: '' });
+  const [vistaTareas, setVistaTareas] = useState<'kanban' | 'lista'>('kanban');
 
   const cargarProyecto = () => {
     if (!id) return;
@@ -268,64 +301,152 @@ export default function DetalleProyecto() {
         </div>
       </div>
 
-      <div className="kanban-grid">
-        {COLUMNAS.map((col) => {
-          const colTareas = tareasPorColumna(col.key);
-          return (
-            <div key={col.key} className="kanban-columna">
-              <div className="kanban-columna-header">
-                <span className="kanban-columna-titulo">{col.label}</span>
-                <span className="kanban-columna-count">{colTareas.length}</span>
+      <div className="proyecto-tareas-header">
+        <h2>Tareas</h2>
+        <div className="proyecto-tareas-actions">
+          <div className="view-toggle">
+            <button
+              className={`view-toggle-btn ${vistaTareas === 'kanban' ? 'active' : ''}`}
+              onClick={() => setVistaTareas('kanban')}
+              title="Vista kanban"
+            >
+              <IconGrid />
+            </button>
+            <button
+              className={`view-toggle-btn ${vistaTareas === 'lista' ? 'active' : ''}`}
+              onClick={() => setVistaTareas('lista')}
+              title="Vista en lista"
+            >
+              <IconList />
+            </button>
+          </div>
+          <button onClick={abrirFormNueva} className="btn-primary btn-icon">
+            <IconPlus />
+            Nueva tarea
+          </button>
+        </div>
+      </div>
+
+      {vistaTareas === 'kanban' ? (
+        <div className="kanban-grid">
+          {COLUMNAS.map((col) => {
+            const colTareas = tareasPorColumna(col.key);
+            const pct = tareas.length > 0 ? Math.round((tareas.filter(t => t.estado === 'completada').length / tareas.length) * 100) : 0;
+            return (
+              <div key={col.key} className="kanban-columna">
+                <div className="kanban-columna-header">
+                  <span className="kanban-columna-titulo">{col.label}</span>
+                  <span className="kanban-columna-count">{colTareas.length}</span>
+                </div>
+                {colTareas.length === 0 ? (
+                  <p className="kanban-columna-empty">Sin tareas</p>
+                ) : (
+                  colTareas.map((t) => {
+                    const daysLeft = t.fechaVencimiento
+                      ? Math.ceil((new Date(t.fechaVencimiento).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      : null;
+                    return (
+                      <div key={t.id} className={`kanban-tarea kanban-tarea-prioridad ${t.prioridad}`} onClick={() => abrirFormEditar(t)}>
+                        <div className="kanban-tarea-titulo">{t.titulo}</div>
+                        {t.descripcion && (
+                          <div className="kanban-tarea-desc">{t.descripcion}</div>
+                        )}
+                        <div className="kanban-tarea-meta">
+                          <span className="badge-prioridad" style={PRIORIDAD_ESTILO(t.prioridad)}>
+                            {PRIORIDADES[t.prioridad] || t.prioridad}
+                          </span>
+                          {t.estimacionHoras ? <span><IconClock /> {t.estimacionHoras}h</span> : null}
+                          {daysLeft !== null && (
+                            <span className={daysLeft < 0 ? 'vencida' : daysLeft <= 2 ? 'proxima' : ''}>
+                              {daysLeft < 0 ? `Vencida` : daysLeft === 0 ? 'Hoy' : `${daysLeft}d`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="kanban-tarea-actions">
+                          {col.key === 'pendiente' && (
+                            <button className="kanban-tarea-btn kanban-tarea-btn-primary" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}>
+                              Iniciar →
+                            </button>
+                          )}
+                          {col.key === 'en_progreso' && (
+                            <>
+                              <button className="kanban-tarea-btn kanban-tarea-btn-primary" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'completada'); }}>
+                                ✓ Completar
+                              </button>
+                              <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'pendiente'); }}>
+                                ← Volver
+                              </button>
+                            </>
+                          )}
+                          {col.key === 'completada' && (
+                            <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}>
+                              ← Reabrir
+                            </button>
+                          )}
+                          <button className="kanban-tarea-btn kanban-tarea-btn-danger" onClick={(e) => { e.stopPropagation(); eliminarTarea(t.id); }} title="Eliminar tarea">
+                            <IconTrash />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                {col.key === 'pendiente' && tareas.length > 0 && (
+                  <div className="kanban-progress">
+                    <div className="kanban-progress-bar">
+                      <div className="kanban-progress-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="kanban-progress-text">{pct}% completado</span>
+                  </div>
+                )}
               </div>
-              {colTareas.length === 0 ? (
-                <p className="kanban-columna-empty">Sin tareas</p>
-              ) : (
-                colTareas.map((t) => (
-                  <div key={t.id} className={`kanban-tarea kanban-tarea-prioridad ${t.prioridad}`} onClick={() => abrirFormEditar(t)}>
-                    <div className="kanban-tarea-titulo">{t.titulo}</div>
-                    <div className="kanban-tarea-meta">
-                      <span className="badge-prioridad" style={{
-                        background: `${t.prioridad === 'critica' ? '#ef4444' : t.prioridad === 'alta' ? '#f59e0b' : t.prioridad === 'media' ? '#06b6d4' : '#8888a0'}1a`,
-                        color: t.prioridad === 'critica' ? '#ef4444' : t.prioridad === 'alta' ? '#f59e0b' : t.prioridad === 'media' ? '#06b6d4' : '#8888a0',
-                        borderColor: `${t.prioridad === 'critica' ? '#ef4444' : t.prioridad === 'alta' ? '#f59e0b' : t.prioridad === 'media' ? '#06b6d4' : '#8888a0'}40`,
-                        padding: '0.1rem 0.4rem', fontSize: '0.65rem',
-                      }}>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="proyecto-tareas-lista">
+          {tareas.length === 0 ? (
+            <p className="kanban-columna-empty">No hay tareas en este proyecto</p>
+          ) : (
+            tareas.map((t) => {
+              const daysLeft = t.fechaVencimiento
+                ? Math.ceil((new Date(t.fechaVencimiento).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null;
+              return (
+                <div
+                  key={t.id}
+                  className="proyecto-tarea-item"
+                  style={{ borderLeftColor: PRIORIDAD_COLOR[t.prioridad] }}
+                  onClick={() => abrirFormEditar(t)}
+                >
+                  <div className="proyecto-tarea-item-main">
+                    <span className="proyecto-tarea-item-titulo">{t.titulo}</span>
+                    <div className="proyecto-tarea-item-badges">
+                      <span className="badge-prioridad" style={PRIORIDAD_ESTILO(t.prioridad)}>
                         {PRIORIDADES[t.prioridad] || t.prioridad}
                       </span>
-                      {t.estimacionHoras ? <span>{t.estimacionHoras}h</span> : null}
-                    </div>
-                    <div className="kanban-tarea-actions">
-                      {col.key === 'pendiente' && (
-                        <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}>
-                          → Iniciar
-                        </button>
-                      )}
-                      {col.key === 'en_progreso' && (
-                        <>
-                          <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'completada'); }}>
-                            ✓ Completar
-                          </button>
-                          <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'pendiente'); }}>
-                            ← Volver
-                          </button>
-                        </>
-                      )}
-                      {col.key === 'completada' && (
-                        <button className="kanban-tarea-btn" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}>
-                          ← Reabrir
-                        </button>
-                      )}
-                      <button className="kanban-tarea-btn kanban-tarea-btn-danger" onClick={(e) => { e.stopPropagation(); eliminarTarea(t.id); }}>
-                        ✕
-                      </button>
+                      <span className={`proyecto-tarea-item-estado estado-${t.estado}`}>
+                        {COLUMNAS.find(c => c.key === t.estado)?.label || t.estado}
+                      </span>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  <div className="proyecto-tarea-item-meta">
+                    {t.estimacionHoras && <span><IconClock /> {t.estimacionHoras}h</span>}
+                    {daysLeft !== null && (
+                      <span className={daysLeft < 0 ? 'vencida' : daysLeft <= 2 ? 'proxima' : ''}>
+                        {daysLeft < 0 ? 'Vencida' : daysLeft === 0 ? 'Hoy' : `${daysLeft}d`}
+                      </span>
+                    )}
+                    <button className="kanban-tarea-btn kanban-tarea-btn-danger" onClick={(e) => { e.stopPropagation(); eliminarTarea(t.id); }} title="Eliminar tarea">
+                      <IconTrash />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {showForm && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>

@@ -355,6 +355,7 @@ body {
 }
 
 .sidebar.collapsed .sidebar-logo-text,
+.sidebar.collapsed .sidebar-header-end,
 .sidebar.collapsed .nav-link > span,
 .sidebar.collapsed .nav-section-label,
 .sidebar.collapsed .nav-section-label::after,
@@ -367,6 +368,7 @@ body {
   padding: 1rem 0.5rem;
   display: flex;
   justify-content: center;
+  gap: 0;
 }
 
 .sidebar.collapsed .sidebar-nav {
@@ -544,10 +546,10 @@ body {
   width: 100%;
   padding: 0.7rem 0.9rem;
   padding-right: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
-  background: rgba(10, 10, 15, 0.6);
+  background: var(--bg-elevated);
   color: var(--text);
   transition: all var(--transition);
   outline: none;
@@ -556,7 +558,7 @@ body {
 
 .input-wrapper input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-glow), inset 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 0 0 3px var(--primary-glow), inset 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .input-wrapper input:disabled {
@@ -573,10 +575,10 @@ body {
 .field select {
   width: 100%;
   padding: 0.7rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
-  background: rgba(10, 10, 15, 0.6);
+  background: var(--bg-elevated);
   color: var(--text);
   transition: all var(--transition);
   outline: none;
@@ -587,7 +589,7 @@ body {
 .field textarea:focus,
 .field select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-glow), inset 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 0 0 3px var(--primary-glow), inset 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .field textarea {
@@ -1850,6 +1852,301 @@ body {
 }
 
 
+/* ===== CLIENTES ===== */
+.page-clientes {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.page-clientes .page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-clientes .page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.clientes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+}
+
+.clientes-empty svg {
+  width: 36px;
+  height: 36px;
+  opacity: 0.4;
+}
+
+.clientes-empty h3 {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.clientes-empty p {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Card view */
+.clientes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.75rem;
+}
+
+.cliente-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.15rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--transition);
+  animation: cardEntrance 0.3s ease-out both;
+}
+
+.cliente-card:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-glow);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+
+.cliente-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.cliente-card-info {
+  min-width: 0;
+}
+
+.cliente-card-nombre {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cliente-card-empresa {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+.cliente-card-contacto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.cliente-card-contacto span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cliente-card-contacto svg {
+  flex-shrink: 0;
+}
+
+/* List view */
+.clientes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cliente-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--transition);
+  animation: cardEntrance 0.3s ease-out both;
+}
+
+.cliente-list-item:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-glow);
+  transform: translateX(2px);
+}
+
+.cliente-list-item-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.cliente-list-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.cliente-list-item-nombre {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cliente-list-item-empresa {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cliente-list-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.cliente-list-item-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cliente-list-item-meta svg {
+  flex-shrink: 0;
+}
+
+/* Detalle cliente */
+.cliente-detalle-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.cliente-detalle-empresa {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.cliente-detalle-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.cliente-detalle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.cliente-detalle-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.cliente-detalle-item svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--text-muted);
+}
+
+.cliente-detalle-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-bottom: 0.15rem;
+}
+
+.cliente-detalle-value {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.cliente-detalle-link {
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.cliente-detalle-link:hover {
+  text-decoration: underline;
+}
+
+.cliente-detalle-notas {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.cliente-detalle-notas p {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+
 .theme-switch {
   position: relative;
   width: 48px;
@@ -2134,6 +2431,172 @@ body {
 .kanban-tarea-btn-danger:hover {
   border-color: var(--error);
   background: rgba(239, 68, 68, 0.08);
+}
+
+/* ===== PROYECTO TAREAS ===== */
+.proyecto-tareas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+}
+
+.proyecto-tareas-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.proyecto-tareas-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.proyecto-tarea-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-dim);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.proyecto-tarea-item:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-glow);
+  transform: translateX(2px);
+}
+
+.proyecto-tarea-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.proyecto-tarea-item-titulo {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proyecto-tarea-item-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.proyecto-tarea-item-estado {
+  font-size: 0.68rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.proyecto-tarea-item-estado.estado-pendiente {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.proyecto-tarea-item-estado.estado-en_progreso {
+  border-color: rgba(6, 182, 212, 0.3);
+  color: var(--accent);
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.proyecto-tarea-item-estado.estado-completada {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.proyecto-tarea-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.proyecto-tarea-item-meta svg {
+  vertical-align: middle;
+}
+
+.vencida {
+  color: var(--error) !important;
+  font-weight: 600;
+}
+
+.proxima {
+  color: var(--warning) !important;
+  font-weight: 600;
+}
+
+/* Kanban improvements */
+.kanban-tarea-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kanban-tarea-meta svg {
+  vertical-align: middle;
+}
+
+.kanban-tarea-btn-primary {
+  color: var(--primary) !important;
+  border-color: rgba(124, 58, 237, 0.25) !important;
+}
+
+.kanban-tarea-btn-primary:hover {
+  border-color: var(--primary) !important;
+  background: rgba(124, 58, 237, 0.08) !important;
+}
+
+.kanban-progress {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.kanban-progress-bar {
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.3rem;
+}
+
+.kanban-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.kanban-progress-text {
+  font-size: 0.65rem;
+  color: var(--text-dim);
 }
 
 /* Modal overlay */
@@ -3206,6 +3669,27 @@ body {
 
   .kanban-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .proyecto-tareas-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .proyecto-tareas-actions {
+    justify-content: space-between;
+  }
+
+  .proyecto-tarea-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .proyecto-tarea-item-meta {
+    gap: 0.5rem;
   }
 
   .proyecto-header {
@@ -3374,6 +3858,34 @@ body {
 
   .auth-logo p {
     font-size: 0.8rem;
+  }
+
+  .clientes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clientes-list-item-meta span:last-child {
+    display: none;
+  }
+
+  .page-clientes .page-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .cliente-detalle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-clientes .view-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 200;
+    background: var(--bg-elevated);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   }
 
   @media (max-width: 400px) {
