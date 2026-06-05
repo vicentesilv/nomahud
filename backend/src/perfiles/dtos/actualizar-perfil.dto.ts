@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsArray, IsEnum, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class ActualizarPerfilDto {
@@ -14,6 +15,7 @@ export class ActualizarPerfilDto {
     @IsOptional()
     @IsUrl()
     @MaxLength(255)
+    @Transform(({ value }) => value?.trim() || undefined)
     sitioWeb?: string;
 
     @IsOptional()

@@ -142,7 +142,7 @@ export default function NuevoProyecto() {
               <label>Cliente</label>
               <div className="select-wrapper">
                 <select name="clienteId" value={form.clienteId} onChange={handleChange}>
-                  <option value="">— Sin cliente —</option>
+                  <option value="">Proyecto personal</option>
                   {clientes.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}{c.empresa ? ` (${c.empresa})` : ''}
@@ -150,6 +150,11 @@ export default function NuevoProyecto() {
                   ))}
                 </select>
               </div>
+              {clientes.length === 0 && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                  No tenés clientes registrados. El proyecto se guardará como proyecto personal.
+                </span>
+              )}
             </div>
           </div>
         </div>

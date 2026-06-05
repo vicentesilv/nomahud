@@ -159,6 +159,12 @@ export default function MiPerfil() {
   const [formTocado, setFormTocado] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const topRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!msg.text) return;
+    const t = setTimeout(() => setMsg({ text: '', type: '' }), 2500);
+    return () => clearTimeout(t);
+  }, [msg]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const skillsArray = form.skills
@@ -210,11 +216,14 @@ export default function MiPerfil() {
     setMsg({ text: '', type: '' });
     setGuardando(true);
     try {
-      const body = {
+      const rawBody: Record<string, any> = {
         ...form,
         skills: skillsArray,
         idiomas: idiomasArray,
       };
+      const body = Object.fromEntries(
+        Object.entries(rawBody).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+      );
       const { data } = await api.patch('/perfiles/mi-perfil', body);
       setPerfil(data);
       setEditando(false);
