@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import mammoth from 'mammoth/mammoth.browser.js';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 
@@ -157,7 +156,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
                     const opts: any = { text: ce.textContent || '' };
                     if (ce.tagName === 'B' || ce.tagName === 'STRONG') opts.bold = true;
                     if (ce.tagName === 'I' || ce.tagName === 'EM') opts.italics = true;
-                    if (ce.tagName === 'U') opts.underline = { type: docx.UnderlineType.single };
+                    if (ce.tagName === 'U') opts.underline = { type: docx.UnderlineType.SINGLE };
                     if (ce.tagName === 'A') opts.link = (ce as HTMLAnchorElement).href;
                     if (opts.text.trim()) runs.push(new docx.TextRun(opts));
                   }

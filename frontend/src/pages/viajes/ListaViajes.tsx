@@ -61,9 +61,6 @@ function IconTravel() {
   );
 }
 
-const MONEDAS_SIMBOLO: Record<string, string> = {
-  MXN: 'MXN', USD: 'USD', EUR: 'EUR', COP: 'COP', ARS: 'ARS', BRL: 'BRL',
-};
 
 export default function ListaViajes() {
   const [viajes, setViajes] = useState<Viaje[]>([]);

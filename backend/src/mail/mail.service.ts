@@ -1,23 +1,13 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Injectable, Logger } from '@nestjs/common';
 
 type MailContext = Record<string, any>;
 
 @Injectable()
 export class MailService {
     private readonly logger = new Logger(MailService.name);
-
-    private readonly transporter = (() => {
-        const smtpUser = this.getEnv('SMTP_USER') ?? this.getEnv('EMAIL_USER');
-        const smtpPass = this.getEnv('SMTP_PASS') ?? this.getEnv('EMAIL_PASSWORD');
-
-        return nodemailer.createTransport({
-            host: this.getEnv('SMTP_HOST') ?? this.getEnv('EMAIL_HOST'),
-            port: Number(this.getEnv('SMTP_PORT') ?? this.getEnv('EMAIL_PORT') ?? 587),
-            secure: false,
-            ...(smtpUser ? { auth: { user: smtpUser, pass: smtpPass ?? '' } } : {}),
-        });
-    })();
+    private readonly brevoApiKey = process.env.BREVO_API_KEY?.trim();
+    private readonly fromEmail = process.env.MAIL_FROM?.trim() || 'noreply@nomahud.com';
+    private readonly fromName = 'Nomahud';
 
     async sendMail(
         to: string,
@@ -25,21 +15,36 @@ export class MailService {
         template: string,
         context: MailContext,
     ): Promise<void> {
-        try {
-            const html = this.renderTemplate(template, context);
-            const from = this.getEnv('MAIL_FROM') ?? this.getEnv('SMTP_USER') ?? this.getEnv('EMAIL_USER');
+        if (!this.brevoApiKey) {
+            this.logger.warn(`Brevo no configurado: correo a ${to} no enviado`);
+            return;
+        }
 
-            await this.transporter.sendMail({
-                from,
-                to,
-                subject,
-                html,
+        const html = this.renderTemplate(template, context);
+
+        try {
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'api-key': this.brevoApiKey,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sender: { name: this.fromName, email: this.fromEmail },
+                    to: [{ email: to }],
+                    subject,
+                    htmlContent: html,
+                }),
             });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`Brevo API error ${response.status}: ${errorBody}`);
+            }
 
             this.logger.log(`Correo enviado a ${to} con asunto "${subject}"`);
         } catch (error) {
-            this.logger.error(`Error al enviar correo a ${to}`, error instanceof Error ? error.stack : undefined);
-            throw new InternalServerErrorException('No se pudo enviar el correo');
+            this.logger.error(`Error al enviar correo a ${to}: ${error instanceof Error ? error.message : error}`);
         }
     }
 
@@ -51,14 +56,5 @@ export class MailService {
 
             return value != null ? String(value) : '';
         });
-    }
-
-    private getEnv(key: string): string | undefined {
-        const value = process.env[key];
-        if (!value) {
-            return undefined;
-        }
-
-        return value.trim();
     }
 }
