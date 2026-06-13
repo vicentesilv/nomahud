@@ -49,9 +49,6 @@ export default function OlvideContrasena() {
             </p>
           </div>
         )}
-        <p className="auth-link">
-          <Link to="/inicio-sesion">Volver a inicio de sesión</Link>
-        </p>
       </div>
     </div>
   );
