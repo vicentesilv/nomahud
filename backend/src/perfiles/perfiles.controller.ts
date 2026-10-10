@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import type { Response } from 'express';
@@ -40,7 +40,7 @@ export class PerfilesController {
         limits: { fileSize: 5 * 1024 * 1024 },
         fileFilter: (_req, file, cb) => {
             if (!file.mimetype.startsWith('image/')) {
-                cb(new Error('Solo se permiten imágenes'), false);
+                cb(new BadRequestException('Solo se permiten imágenes'), false);
                 return;
             }
             cb(null, true);
@@ -48,7 +48,7 @@ export class PerfilesController {
     }))
     async uploadAvatar(@User() usuario: Usuario, @UploadedFile() file: any) {
         if (!file) {
-            throw new Error('Archivo es requerido');
+            throw new BadRequestException('Archivo es requerido');
         }
         const avatarUrl = `/api/perfiles/avatar/${file.filename}`;
         return this.perfilesService.updateAvatar(usuario.id, avatarUrl);
@@ -56,7 +56,12 @@ export class PerfilesController {
 
     @Get('avatar/:filename')
     async getAvatar(@Param('filename') filename: string, @Res() res: Response) {
-        const ruta = path.join(process.cwd(), 'uploads', 'avatars', filename);
+        const base = path.basename(filename);
+        if (!base || base !== filename || !/^[A-Za-z0-9][A-Za-z0-9._-]*\.(jpg|jpeg|png|webp|gif)$/i.test(base)) {
+            res.status(400).json({ mensaje: 'Nombre de archivo inválido' });
+            return;
+        }
+        const ruta = path.join(process.cwd(), 'uploads', 'avatars', base);
         if (!fs.existsSync(ruta)) {
             res.status(404).json({ mensaje: 'Avatar no encontrado' });
             return;

@@ -47,8 +47,9 @@ export class UsuariosService {
         const usuario = await this.findById(id);
 
         if (!usuario) throw new NotFoundException('Usuario no encontrado');
-        if ( updateUsuarioDto.correo !== undefined || updateUsuarioDto.fechaNacimiento !== undefined) {
-            throw new BadRequestException('No se permite actualizar correo ni fechaNacimiento');
+        const dto = updateUsuarioDto as Record<string, unknown>;
+        if (dto.correo !== undefined || dto.fechaNacimiento !== undefined || (dto as Record<string, unknown>).contrasena !== undefined) {
+            throw new BadRequestException('No se permite actualizar correo, fechaNacimiento ni contrasena por esta vía');
         }
 
         if (updateUsuarioDto.nombre !== undefined) usuario.nombre = updateUsuarioDto.nombre;

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import api from '../../services/api';
+import DOMPurify from 'dompurify';
+import api, { backendUrl } from '../../services/api';
 
 interface Documento {
   id: number;
@@ -42,13 +43,16 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
   const esXlsx = ext === 'xlsx';
   const esPptx = ext === 'pptx';
 
+  const htmlSeguro = useMemo(() => (html ? DOMPurify.sanitize(html) : null), [html]);
+
   const iniciarEdicion = useCallback(async () => {
     setEditMsg('');
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/documentos/${doc.id}/download`, {
+      const res = await fetch(backendUrl(`/documentos/${doc.id}/download`), {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error(`Descarga falló (${res.status})`);
       const blob = await res.blob();
       if (esXlsx) {
         const buf = await blob.arrayBuffer();
@@ -157,7 +161,10 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
                     if (ce.tagName === 'B' || ce.tagName === 'STRONG') opts.bold = true;
                     if (ce.tagName === 'I' || ce.tagName === 'EM') opts.italics = true;
                     if (ce.tagName === 'U') opts.underline = { type: docx.UnderlineType.SINGLE };
-                    if (ce.tagName === 'A') opts.link = (ce as HTMLAnchorElement).href;
+                    if (ce.tagName === 'A') {
+                      const href = (ce as HTMLAnchorElement).getAttribute('href') || '';
+                      if (/^(https?:|mailto:)/i.test(href)) opts.link = href;
+                    }
                     if (opts.text.trim()) runs.push(new docx.TextRun(opts));
                   }
                 }
@@ -251,7 +258,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     }
 
     if (editando && esDocx) {
-      const initialHtml = html || '<p></p>';
+      const initialHtml = htmlSeguro || '<p></p>';
       return (
         <div
           ref={editorRef}
@@ -335,7 +342,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
                   fontFamily: 'Calibri, Arial, sans-serif',
                   fontSize: '11pt', lineHeight: '1.5',
                 }}
-                dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br>') }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.replace(/\n/g, '<br>')) }}
               />
             </div>
           ))}
@@ -349,10 +356,10 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
         <p>{error}</p>
       </div>
     );
-    if (html) return (
+    if (htmlSeguro) return (
       <div
         className="office-preview"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: htmlSeguro }}
         style={{ width: '100%', maxWidth: '100%' }}
       />
     );

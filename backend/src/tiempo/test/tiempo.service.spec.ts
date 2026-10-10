@@ -12,6 +12,7 @@ describe('TiempoService', () => {
     findOne: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
+    manager: { findOne: jest.Mock };
   }>;
 
   beforeEach(async () => {
@@ -26,6 +27,7 @@ describe('TiempoService', () => {
             findOne: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
+            manager: { findOne: jest.fn().mockResolvedValue({ id: 1 }) },
           },
         },
       ],

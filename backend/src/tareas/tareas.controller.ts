@@ -11,8 +11,8 @@ export class TareasController {
     constructor(private readonly tareasService: TareasService) {}
 
     @Post()
-    async create(@Body() dto: CrearTareaDto) {
-        return this.tareasService.create(dto);
+    async create(@User('id') userId: number, @Body() dto: CrearTareaDto) {
+        return this.tareasService.create(userId, dto);
     }
 
     @Get()
@@ -21,23 +21,23 @@ export class TareasController {
     }
 
     @Get('proyecto/:proyectoId')
-    async findAllByProyecto(@Param('proyectoId', ParseIntPipe) proyectoId: number) {
-        return this.tareasService.findAllByProyecto(proyectoId);
+    async findAllByProyecto(@User('id') userId: number, @Param('proyectoId', ParseIntPipe) proyectoId: number) {
+        return this.tareasService.findAllByProyecto(proyectoId, userId);
     }
 
     @Get(':id')
-    async findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.tareasService.findOne(id);
+    async findOne(@User('id') userId: number, @Param('id', ParseIntPipe) id: number) {
+        return this.tareasService.findOne(id, userId);
     }
 
     @Patch(':id')
-    async update(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarTareaDto) {
-        return this.tareasService.update(id, dto);
+    async update(@User('id') userId: number, @Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarTareaDto) {
+        return this.tareasService.update(id, userId, dto);
     }
 
     @Delete(':id')
-    async remove(@Param('id', ParseIntPipe) id: number) {
-        await this.tareasService.remove(id);
+    async remove(@User('id') userId: number, @Param('id', ParseIntPipe) id: number) {
+        await this.tareasService.remove(id, userId);
         return { mensaje: 'Tarea eliminada correctamente' };
     }
 }

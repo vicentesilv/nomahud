@@ -50,11 +50,24 @@ backend/!.vscode/launch.json
 backend/!.vscode/extensions.json
 
 # # Variables de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 backend/.env
 backend/.env.local
 backend/.env.development.local
 backend/.env.test.local
 backend/.env.production.local
+
+# Uploads con datos de usuarios (usar volumen/S3 en prod)
+backend/uploads/
+uploads/
+
+# Patch local de credenciales filtradas (ver .env.example)
+*.pem
+*.key
 
 # TypeScript
 backend/*.tsbuildinfo

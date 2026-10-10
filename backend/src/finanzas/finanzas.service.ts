@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Transaccion } from './entities/transaccion.entity';
 import { CrearTransaccionDto } from './dtos/crear-transaccion.dto';
 import { ActualizarTransaccionDto } from './dtos/actualizar-transaccion.dto';
+import { Proyecto } from '../proyectos/entities/proyecto.entity';
+import { Cliente } from '../clientes/entities/cliente.entity';
 
 @Injectable()
 export class FinanzasService {
@@ -12,7 +14,24 @@ export class FinanzasService {
         private readonly transaccionRepository: Repository<Transaccion>,
     ) {}
 
+    private async verificarReferenciasPropias(
+        creadorId: number,
+        proyectoId?: number | null,
+        clienteId?: number | null,
+    ): Promise<void> {
+        const manager = this.transaccionRepository.manager;
+        if (proyectoId != null) {
+            const proyecto = await manager.findOne(Proyecto, { where: { id: proyectoId, creadorId }, select: ['id'] });
+            if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+        }
+        if (clienteId != null) {
+            const cliente = await manager.findOne(Cliente, { where: { id: clienteId, creadorId }, select: ['id'] });
+            if (!cliente) throw new NotFoundException('Cliente no encontrado');
+        }
+    }
+
     async create(creadorId: number, dto: CrearTransaccionDto): Promise<Transaccion> {
+        await this.verificarReferenciasPropias(creadorId, dto.proyectoId, dto.clienteId);
         const transaccion = this.transaccionRepository.create({ ...dto, creadorId });
         return this.transaccionRepository.save(transaccion);
     }
@@ -40,7 +59,11 @@ export class FinanzasService {
 
     async update(id: number, creadorId: number, dto: ActualizarTransaccionDto): Promise<Transaccion> {
         const transaccion = await this.findOne(id, creadorId);
-        Object.assign(transaccion, dto);
+        await this.verificarReferenciasPropias(creadorId, dto.proyectoId, dto.clienteId);
+        const { proyectoId, clienteId, ...resto } = dto;
+        Object.assign(transaccion, resto);
+        if (proyectoId !== undefined) transaccion.proyectoId = proyectoId;
+        if (clienteId !== undefined) transaccion.clienteId = clienteId;
         return this.transaccionRepository.save(transaccion);
     }
 

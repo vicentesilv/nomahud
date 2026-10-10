@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
@@ -15,11 +16,15 @@ import { AuthTokensCleanupJob } from '../common/jobs/auth-tokens-cleanup.job';
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: {
-        expiresIn: (process.env.JWT_EXPIRES_IN || '24h') as any,
-      },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '24h') as never,
+        },
+      }),
+      inject: [ConfigService],
     }),
     UsuariosModule,
     MailModule,

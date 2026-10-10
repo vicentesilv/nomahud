@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class CrearTareaDto {
     @IsString()
@@ -23,6 +23,7 @@ export class CrearTareaDto {
 
     @IsOptional()
     @IsInt()
+    @Min(0)
     estimacionHoras?: number;
 
     @IsInt()

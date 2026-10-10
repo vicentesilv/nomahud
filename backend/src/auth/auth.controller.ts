@@ -1,4 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/register.dto';
@@ -8,14 +9,17 @@ import { SolicitarRecuperacionDto } from './dtos/solicitar-recuperacion.dto';
 import { RestablecerContrasenaDto } from './dtos/restablecer-contrasena.dto';
 
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
+    @Throttle({ auth: { ttl: 60_000, limit: 5 } })
     @Post('inicio-sesion')
     async login(@Body() loginDto: LoginDto) {
         return this.authService.login(loginDto.correo, loginDto.contrasena);
     }
 
+    @Throttle({ auth: { ttl: 3_600_000, limit: 10 } })
     @Post('registro')
     async register(@Body() registerDto: RegisterDto) {
         return this.authService.register(
@@ -32,11 +36,13 @@ export class AuthController {
         return this.authService.confirmarCuenta(confirmarCuentaDto.token);
     }
 
+    @Throttle({ auth: { ttl: 3_600_000, limit: 5 } })
     @Post('reenviar-confirmacion')
     async reenviarConfirmacion(@Body() reenviarConfirmacionDto: ReenviarConfirmacionDto) {
         return this.authService.reenviarConfirmacion(reenviarConfirmacionDto.correo);
     }
 
+    @Throttle({ auth: { ttl: 3_600_000, limit: 5 } })
     @Post('solicitar-recuperacion')
     async solicitarRecuperacion(@Body() solicitarRecuperacionDto: SolicitarRecuperacionDto) {
         return this.authService.solicitarRecuperacion(solicitarRecuperacionDto.correo);

@@ -51,18 +51,26 @@ describe('TareasService', () => {
     const dto = { titulo: 'Tarea 1', proyectoId: 1 } as any;
     repo.create.mockReturnValue(dto as Tarea);
     repo.save.mockResolvedValue({ id: 1, ...dto } as Tarea);
+    repo.manager.findOne.mockResolvedValue({ id: 1, creadorId: 7 } as Proyecto);
 
-    const result = await service.create(dto);
+    const result = await service.create(7, dto);
 
     expect(repo.create).toHaveBeenCalledWith(dto);
     expect(result.id).toBe(1);
   });
 
+  it('create: rechaza proyecto ajeno', async () => {
+    repo.manager.findOne.mockResolvedValue(null);
+
+    await expect(service.create(7, { titulo: 'X', proyectoId: 99 } as any)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('findAllByProyecto: retorna tareas del proyecto', async () => {
     const tareas = [{ id: 1 }] as Tarea[];
+    repo.manager.findOne.mockResolvedValue({ id: 1, creadorId: 7 } as Proyecto);
     repo.find.mockResolvedValue(tareas);
 
-    const result = await service.findAllByProyecto(1);
+    const result = await service.findAllByProyecto(1, 7);
 
     expect(repo.find).toHaveBeenCalledWith({
       where: { proyectoId: 1 },
@@ -90,7 +98,7 @@ describe('TareasService', () => {
     const tarea = { id: 1 } as Tarea;
     repo.findOne.mockResolvedValue(tarea);
 
-    const result = await service.findOne(1);
+    const result = await service.findOne(1, 7);
 
     expect(result).toBe(tarea);
   });
@@ -98,7 +106,7 @@ describe('TareasService', () => {
   it('findOne: lanza NotFoundException si no existe', async () => {
     repo.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne(999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.findOne(999, 7)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('update: registra tiempo si tarea pasa a completada', async () => {
@@ -116,11 +124,11 @@ describe('TareasService', () => {
     repo.save.mockResolvedValue({ ...tarea, estado: 'completada', autoTiempoRegistrado: true } as Tarea);
     repo.manager.findOne.mockResolvedValue(proyecto);
 
-    await service.update(1, { estado: 'completada' } as any);
+    await service.update(1, 7, { estado: 'completada' } as any);
 
     expect(repo.manager.findOne).toHaveBeenCalledWith(Proyecto, {
       where: { id: 1 },
-      select: ['creadorId'],
+      select: ['id', 'creadorId'],
     });
     expect(tiempoService.create).toHaveBeenCalledWith(1, {
       proyectoId: 1,
@@ -136,7 +144,7 @@ describe('TareasService', () => {
     repo.findOne.mockResolvedValue(tarea);
     repo.save.mockResolvedValue({ ...tarea, estado: 'en_progreso' } as Tarea);
 
-    await service.update(1, { estado: 'en_progreso' } as any);
+    await service.update(1, 7, { estado: 'en_progreso' } as any);
 
     expect(tiempoService.create).not.toHaveBeenCalled();
   });
@@ -145,7 +153,7 @@ describe('TareasService', () => {
     const tarea = { id: 1 } as Tarea;
     repo.findOne.mockResolvedValue(tarea);
 
-    await service.remove(1);
+    await service.remove(1, 7);
 
     expect(repo.remove).toHaveBeenCalledWith(tarea);
   });

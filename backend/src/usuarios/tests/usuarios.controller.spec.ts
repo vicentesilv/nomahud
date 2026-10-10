@@ -1,14 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
-import * as bcrypt from 'bcrypt';
 import { UsuariosController } from '../usuarios.controller';
 import { UsuariosService } from '../usuarios.service';
-import { CreateUsuarioDto } from '../dtos/create.usuario.dto';
 import { Usuario } from '../entitys/usuarios.entity';
-
-jest.mock('bcrypt', () => ({
-	hash: jest.fn(),
-}));
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 describe('UsuariosController', () => {
 	let controller: UsuariosController;
@@ -20,11 +15,12 @@ describe('UsuariosController', () => {
 			providers: [
 				{
 					provide: UsuariosService,
-					useValue: {
-						createUsuario: jest.fn(),
-						findById: jest.fn(),
-						updateUsuario: jest.fn(),
-					},
+				useValue: {
+					createUsuario: jest.fn(),
+					findById: jest.fn(),
+					updateUsuario: jest.fn(),
+					deleteUsuario: jest.fn(),
+				},
 				},
 			],
 		}).compile();
@@ -41,57 +37,14 @@ describe('UsuariosController', () => {
 		expect(controller).toBeDefined();
 	});
 
-	it('createUser: hashea contrasena y llama a createUsuario del service', async () => {
-		const dto: CreateUsuarioDto = {
-			nombre: 'Vicente',
-			correo: 'vicente@mail.com',
-			contrasena: '12345678',
-			ciudad: 'Santiago',
-			fechaNacimiento: new Date('2000-01-01'),
-		};
+	it('controlador debe estar protegido con JwtAuthGuard', () => {
+		const guards = Reflect.getMetadata(GUARDS_METADATA, UsuariosController);
 
-		const hashMock = bcrypt.hash as jest.Mock;
-		hashMock.mockResolvedValue('contrasena_hasheada');
-
-		const usuarioCreado = {
-			id: 1,
-			nombre: dto.nombre,
-			correo: dto.correo,
-			ciudad: dto.ciudad,
-			fechaNacimiento: dto.fechaNacimiento,
-		} as Usuario;
-
-		usuariosService.createUsuario.mockResolvedValue(usuarioCreado);
-
-		const result = await controller.createUser(dto);
-
-		expect(hashMock).toHaveBeenCalledWith('12345678', 10);
-		expect(usuariosService.createUsuario).toHaveBeenCalledWith({
-			...dto,
-			contrasena: 'contrasena_hasheada',
-		});
-		expect(result).toBe(usuarioCreado);
+		expect(guards).toBeDefined();
+		expect(guards[0]).toBe(JwtAuthGuard);
 	});
 
-	it('POST /usuarios no debe estar protegido con JwtAuthGuard', () => {
-		const guards = Reflect.getMetadata(
-			GUARDS_METADATA,
-			UsuariosController.prototype.createUser,
-		);
-
-		expect(guards).toBeUndefined();
-	});
-
-	it('GET /usuarios/:id no debe estar protegido con JwtAuthGuard', () => {
-		const guards = Reflect.getMetadata(
-			GUARDS_METADATA,
-			UsuariosController.prototype.getUser,
-		);
-
-		expect(guards).toBeUndefined();
-	});
-
-	it('GET /usuarios/:id: retorna usuario si existe', async () => {
+	it('GET /usuarios/:id: retorna usuario si es el propietario', async () => {
 		const usuario = {
 			id: 1,
 			nombre: 'Vicente',
@@ -102,56 +55,59 @@ describe('UsuariosController', () => {
 
 		usuariosService.findById.mockResolvedValue(usuario);
 
-		const result = await controller.getUser(1);
+		const result = await controller.getUser(1, 1);
 
 		expect(result).toBe(usuario);
+	});
+	it('GET /usuarios/:id: lanza Forbidden si no es el propietario', async () => {
+		await expect(controller.getUser(1, 2)).rejects.toThrow('No tienes permiso');
+		expect(usuariosService.findById).not.toHaveBeenCalled();
 	});
 	it('GET /usuarios/:id: lanza error si usuario no existe', async () => {
 		usuariosService.findById.mockResolvedValue(null);
 
-		await expect(controller.getUser(999)).rejects.toThrow('Usuario no existe');
+		await expect(controller.getUser(999, 999)).rejects.toThrow('Usuario no existe');
 	});
 	it('PATCH /usuarios/:id: llama a updateUsuario del service', async () => {
-		const updateDto = { 
-			correo: 'vicente@gmail.com',
+		const updateDto = {
 			ciudad: 'Valparaiso',
 		};
 
 		const usuarioActualizado = {
 			id: 1,
 			nombre: 'Vicente',
-			correo: updateDto.correo,
+			correo: 'vicente@mail.com',
 			ciudad: updateDto.ciudad,
 			fechaNacimiento: new Date('2000-01-01'),
 		} as Usuario;
 
 		usuariosService.updateUsuario.mockResolvedValue(usuarioActualizado);
 
-		const result = await controller.updateUser(1, updateDto);
+		const result = await controller.updateUser(1, 1, updateDto);
 
 		expect(usuariosService.updateUsuario).toHaveBeenCalledWith(1, updateDto);
 		expect(result).toBe(usuarioActualizado);
 	});
 	it('PATCH /usuarios/:id: lanza error si se intenta actualizar correo o fechaNacimiento', async () => {
-		const updateDto = { 
+		const updateDto = {
 			correo: 'nuevo@mail.com',
 			fechaNacimiento: new Date('1990-01-01'),
-		};
+		} as any;
 
 		usuariosService.updateUsuario.mockRejectedValue(
 			new Error('No se permite actualizar correo ni fechaNacimiento'),
 		);
 
-		await expect(controller.updateUser(1, updateDto)).rejects.toThrow('No se permite actualizar correo ni fechaNacimiento');
+		await expect(controller.updateUser(1, 1, updateDto)).rejects.toThrow('No se permite actualizar correo ni fechaNacimiento');
 		expect(usuariosService.updateUsuario).toHaveBeenCalledWith(1, updateDto);
 	});
-	it('PATCH /usuarios/:id: erro si usuario no existe', async () => {
-		const updateDto = { 
-			correo: 'vicente@gmail.com',
+	it('PATCH /usuarios/:id: error si usuario no existe', async () => {
+		const updateDto = {
+			ciudad: 'Valparaiso',
 		};
 
 		usuariosService.updateUsuario.mockRejectedValue(new Error('Usuario no encontrado'));
 
-		await expect(controller.updateUser(999, updateDto)).rejects.toThrow('Usuario no encontrado');
+		await expect(controller.updateUser(999, 999, updateDto)).rejects.toThrow('Usuario no encontrado');
 	});
 });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import api from '../../services/api';
+import api, { resolvePublicUrl } from '../../services/api';
 
 interface PerfilPublico {
   id: number;
@@ -56,7 +56,7 @@ export default function PerfilPublico() {
         <div className="perfil-section">
           <div className="perfil-header">
             {perfil.avatarUrl ? (
-              <img src={perfil.avatarUrl} alt="Avatar" className="avatar" />
+              <img src={resolvePublicUrl(perfil.avatarUrl)} alt="Avatar" className="avatar" />
             ) : (
               <div className="avatar-placeholder">{initials}</div>
             )}

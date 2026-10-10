@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { RegistroTiempo } from './entities/registro-tiempo.entity';
 import { CrearRegistroTiempoDto } from './dtos/crear-registro-tiempo.dto';
 import { ActualizarRegistroTiempoDto } from './dtos/actualizar-registro-tiempo.dto';
+import { Proyecto } from '../proyectos/entities/proyecto.entity';
+import { Tarea } from '../tareas/entities/tarea.entity';
 
 @Injectable()
 export class TiempoService {
@@ -12,7 +14,24 @@ export class TiempoService {
         private readonly registroRepository: Repository<RegistroTiempo>,
     ) {}
 
+    private async verificarReferenciasPropias(creadorId: number, proyectoId?: number | null, tareaId?: number | null): Promise<void> {
+        const manager = this.registroRepository.manager;
+        if (proyectoId != null) {
+            const proyecto = await manager.findOne(Proyecto, { where: { id: proyectoId, creadorId }, select: ['id'] });
+            if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+        }
+        if (tareaId != null) {
+            const tarea = await manager.findOne(Tarea, {
+                where: { id: tareaId, proyecto: { creadorId } },
+                relations: ['proyecto'],
+                select: ['id'],
+            });
+            if (!tarea) throw new NotFoundException('Tarea no encontrada');
+        }
+    }
+
     async create(creadorId: number, dto: CrearRegistroTiempoDto): Promise<RegistroTiempo> {
+        await this.verificarReferenciasPropias(creadorId, dto.proyectoId, dto.tareaId);
         const registro = this.registroRepository.create({ ...dto, creadorId });
         return this.registroRepository.save(registro);
     }
@@ -40,7 +59,11 @@ export class TiempoService {
 
     async update(id: number, creadorId: number, dto: ActualizarRegistroTiempoDto): Promise<RegistroTiempo> {
         const registro = await this.findOne(id, creadorId);
-        Object.assign(registro, dto);
+        await this.verificarReferenciasPropias(creadorId, dto.proyectoId, dto.tareaId);
+        const { proyectoId, tareaId, ...resto } = dto;
+        Object.assign(registro, resto);
+        if (proyectoId !== undefined) registro.proyectoId = proyectoId;
+        if (tareaId !== undefined) registro.tareaId = tareaId;
         return this.registroRepository.save(registro);
     }
 

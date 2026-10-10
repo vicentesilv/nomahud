@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsInt, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class CrearTransaccionDto {
     @IsEnum(['ingreso', 'gasto'])
@@ -9,6 +9,7 @@ export class CrearTransaccionDto {
     categoria: string;
 
     @IsNumber()
+    @Min(0)
     monto: number;
 
     @IsOptional()

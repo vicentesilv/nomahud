@@ -69,7 +69,7 @@ describe('PerfilesService', () => {
   });
 
   it('update actualiza y guarda perfil', async () => {
-    const perfil = { id: 1, usuarioId: 10, bio: 'vieja', sitioWeb: null } as Perfil;
+    const perfil = { id: 1, usuarioId: 10, bio: 'vieja', sitioWeb: null } as unknown as Perfil;
     repo.findOne.mockResolvedValue(perfil);
     repo.save.mockResolvedValue({ ...perfil, bio: 'nueva' } as Perfil);
 

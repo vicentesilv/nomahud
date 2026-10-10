@@ -16,6 +16,7 @@ import { ViajesModule } from './viajes/viajes.module';
 import { DocumentosModule } from './documentos/documentos.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -24,6 +25,9 @@ import { ScheduleModule } from '@nestjs/schedule';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([
+      { name: 'auth', ttl: 60_000, limit: 10 },
+    ]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -34,7 +38,7 @@ import { ScheduleModule } from '@nestjs/schedule';
         password: configService.getOrThrow<string>('DB_PASSWORD'),
         database: configService.getOrThrow<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
+        synchronize: configService.get<string>('NODE_ENV') !== 'production',
       }),
       inject: [ConfigService],
     }),

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { PerfilesService } from '../perfiles/perfiles.service';
 import { JwtService } from '@nestjs/jwt';
@@ -16,6 +17,7 @@ export class AuthService {
     private readonly mailMetrics = {
         enviados: 0,
         fallidos: 0,
+        omitidos: 0,
     };
 
     constructor(
@@ -23,6 +25,7 @@ export class AuthService {
         private readonly usuariosService: UsuariosService,
         private readonly perfilesService: PerfilesService,
         private readonly mailService: MailService,
+        private readonly configService: ConfigService,
         @InjectRepository(AuthToken)
         private readonly authTokenRepository: Repository<AuthToken>,
     ) {}
@@ -32,13 +35,14 @@ export class AuthService {
     }
 
     private generateToken(userId: number, correo: string): string {
-        const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
+        const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN') || '24h';
+        const secret = this.configService.getOrThrow<string>('JWT_SECRET');
 
         return this.jwtService.sign(
             { userId, correo },
             {
-                secret: process.env.JWT_SECRET,
-                expiresIn: expiresIn as any,
+                secret,
+                expiresIn: expiresIn as never,
             },
         );
     }
@@ -101,10 +105,15 @@ export class AuthService {
             fechaNacimiento,
         });
 
-        await this.sendEmailConfirmation(usuarioCreado as Usuario);
-        if (!process.env.SMTP_HOST && process.env.NODE_ENV === 'development') {
-            this.logger.warn('SMTP no configurado: auto-confirmando cuenta en modo desarrollo');
-            await this.usuariosService.marcarEmailVerificado(usuarioCreado.id);
+        try {
+            await this.sendEmailConfirmation(usuarioCreado as Usuario);
+        } catch (error) {
+            const sinCorreo = !this.configService.get('BREVO_API_KEY') && !this.configService.get('SMTP_HOST');
+            if (sinCorreo && this.configService.get('NODE_ENV') !== 'production') {
+                this.logger.warn('Correo no configurado: cuenta pendiente, usa reenviar-confirmacion cuando configures BREVO_API_KEY');
+            } else {
+                throw error;
+            }
         }
 
         await this.perfilesService.findOrCreate(usuarioCreado.id);
@@ -207,7 +216,7 @@ export class AuthService {
             }),
         );
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
         const enlaceRecuperacion = `${frontendUrl}/restablecer-contrasena?token=${token}`;
 
         await this.sendTransactionalEmail(
@@ -285,7 +294,7 @@ export class AuthService {
             }),
         );
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
         const enlaceConfirmacion = `${frontendUrl}/confirmar-cuenta?token=${token}`;
 
         await this.sendTransactionalEmail(
@@ -316,14 +325,22 @@ export class AuthService {
         usuarioId?: number,
     ): Promise<void> {
         try {
-            await this.mailService.sendMail(to, subject, template, context);
+            const enviado = await this.mailService.sendMail(to, subject, template, context);
+            if (!enviado) {
+                this.mailMetrics.omitidos += 1;
+                this.logger.warn(
+                    `Correo omitido (sin proveedor). Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'}. Configura BREVO_API_KEY o SMTP_HOST`,
+                );
+                return;
+            }
             this.mailMetrics.enviados += 1;
             this.logger.log(`Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosEnviados=${this.mailMetrics.enviados}`);
         } catch (error) {
             this.mailMetrics.fallidos += 1;
-            this.logger.warn(
-                `Fallo envío de correo (modo dev). Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosFallidos=${this.mailMetrics.fallidos}`,
+            this.logger.error(
+                `Fallo envío de correo. Evento=${evento} usuarioId=${usuarioId ?? 'desconocido'} correosFallidos=${this.mailMetrics.fallidos}: ${error instanceof Error ? error.message : error}`,
             );
+            throw error;
         }
     }
  

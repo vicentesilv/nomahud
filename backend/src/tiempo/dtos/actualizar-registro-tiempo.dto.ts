@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class ActualizarRegistroTiempoDto {
     @IsOptional()
@@ -19,5 +19,6 @@ export class ActualizarRegistroTiempoDto {
 
     @IsOptional()
     @IsNumber()
+    @Min(0)
     horas?: number;
 }

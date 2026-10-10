@@ -1,8 +1,11 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig(() => {
-  const apiUrl = process.env.VITE_API_URL || 'http://localhost:3001'
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  // El proxy corre DENTRO del contenedor: debe apuntar al servicio backend (app:3000).
+  // Para `npm run dev` fuera de Docker, definir VITE_PROXY_TARGET=http://localhost:3001 en frontend/.env
+  const proxyTarget = env.VITE_PROXY_TARGET || 'http://app:3000'
 
   return {
     plugins: [
@@ -28,10 +31,10 @@ export default module.exports;
       exclude: ['mammoth', 'xlsx'],
     },
     server: {
-      allowedHosts: true,
+      allowedHosts: ['localhost', '127.0.0.1'],
       proxy: {
         '/api': {
-          target: apiUrl,
+          target: proxyTarget,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },

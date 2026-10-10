@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import api from '../../services/api';
+import api, { backendUrl } from '../../services/api';
 import VisorDocumentos from './VisorDocumentos';
 import mammoth from 'mammoth/mammoth.browser.js';
 import * as XLSX from 'xlsx';
@@ -109,9 +109,7 @@ export default function ListaDocumentos() {
     if (uploadEntidad) formData.append('entidadId', uploadEntidad);
     if (uploadNombre) formData.append('nombre', uploadNombre);
     try {
-      await api.post('/documentos', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/documentos', formData);
       setUploadEntidad('');
       setUploadNombre('');
       if (fileRef.current) fileRef.current.value = '';
@@ -126,13 +124,15 @@ export default function ListaDocumentos() {
     try {
       await api.delete(`/documentos/${id}`);
       cargar();
-    } catch {}
+    } catch (err: any) {
+      setMsg(err.response?.data?.message || 'Error al eliminar');
+    }
   };
 
   const descargar = async (doc: Documento) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/documentos/${doc.id}/download`, {
+      const res = await fetch(backendUrl(`/documentos/${doc.id}/download`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Error al descargar');
@@ -169,11 +169,12 @@ export default function ListaDocumentos() {
     const esOffice = ext === 'docx' || ext === 'xlsx' || ext === 'pptx';
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/documentos/${doc.id}/download`, {
+      const res = await fetch(backendUrl(`/documentos/${doc.id}/download`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Error al descargar el archivo');
       const blob = await res.blob();
+      if (visorUrl) URL.revokeObjectURL(visorUrl);
       const url = URL.createObjectURL(blob);
       setVisorUrl(url);
       setVisorDoc(doc);

@@ -16,12 +16,25 @@ export class TareasService {
         private readonly tiempoService: TiempoService,
     ) {}
 
-    async create(dto: CrearTareaDto): Promise<Tarea> {
+    private async verificarProyectoPropio(proyectoId: number, creadorId: number): Promise<Proyecto> {
+        const proyecto = await this.tareaRepository.manager.findOne(Proyecto, {
+            where: { id: proyectoId },
+            select: ['id', 'creadorId'],
+        });
+        if (!proyecto || proyecto.creadorId !== creadorId) {
+            throw new NotFoundException('Proyecto no encontrado');
+        }
+        return proyecto;
+    }
+
+    async create(creadorId: number, dto: CrearTareaDto): Promise<Tarea> {
+        await this.verificarProyectoPropio(dto.proyectoId, creadorId);
         const tarea = this.tareaRepository.create(dto);
         return this.tareaRepository.save(tarea);
     }
 
-    async findAllByProyecto(proyectoId: number): Promise<Tarea[]> {
+    async findAllByProyecto(proyectoId: number, creadorId: number): Promise<Tarea[]> {
+        await this.verificarProyectoPropio(proyectoId, creadorId);
         return this.tareaRepository.find({
             where: { proyectoId },
             order: { createdAt: 'ASC' },
@@ -37,10 +50,10 @@ export class TareasService {
         });
     }
 
-    async findOne(id: number): Promise<Tarea> {
+    async findOne(id: number, creadorId?: number): Promise<Tarea> {
         const tarea = await this.tareaRepository.findOne({
-            where: { id },
-            relations: ['asignadoA'],
+            where: creadorId != null ? { id, proyecto: { creadorId } } : { id },
+            relations: ['asignadoA', 'proyecto'],
         });
 
         if (!tarea) {
@@ -50,8 +63,11 @@ export class TareasService {
         return tarea;
     }
 
-    async update(id: number, dto: ActualizarTareaDto): Promise<Tarea> {
-        const tarea = await this.findOne(id);
+    async update(id: number, creadorId: number, dto: ActualizarTareaDto): Promise<Tarea> {
+        const tarea = await this.findOne(id, creadorId);
+        if (dto.proyectoId != null && dto.proyectoId !== tarea.proyectoId) {
+            await this.verificarProyectoPropio(dto.proyectoId, creadorId);
+        }
         const estadoAnterior = tarea.estado;
         const proyectoId = tarea.proyectoId;
         const estimacionHoras = tarea.estimacionHoras;
@@ -69,7 +85,7 @@ export class TareasService {
             if (horas > 0) {
                 const proyecto = await this.tareaRepository.manager.findOne(Proyecto, {
                     where: { id: proyectoId },
-                    select: ['creadorId'],
+                    select: ['id', 'creadorId'],
                 });
                 if (proyecto?.creadorId) {
                     await this.tiempoService.create(proyecto.creadorId, {
@@ -87,8 +103,8 @@ export class TareasService {
         return this.tareaRepository.save(tarea);
     }
 
-    async remove(id: number): Promise<void> {
-        const tarea = await this.findOne(id);
+    async remove(id: number, creadorId: number): Promise<void> {
+        const tarea = await this.findOne(id, creadorId);
         await this.tareaRepository.remove(tarea);
     }
 }

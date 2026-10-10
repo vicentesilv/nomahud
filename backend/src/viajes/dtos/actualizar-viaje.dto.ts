@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class ActualizarViajeDto {
     @IsOptional()
@@ -20,6 +20,7 @@ export class ActualizarViajeDto {
 
     @IsOptional()
     @IsNumber()
+    @Min(0)
     presupuesto?: number;
 
     @IsOptional()

@@ -1,4 +1,3 @@
-import { InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { MailService } from '../mail.service';
 
@@ -6,119 +5,103 @@ jest.mock('nodemailer', () => ({
     createTransport: jest.fn(),
 }));
 
-describe('MailService', () => {
-    let service: MailService;
+describe('MailService (Brevo + SMTP fallback)', () => {
+    const OLD_ENV = process.env;
     let sendMailMock: jest.Mock;
 
     beforeEach(() => {
-        sendMailMock = jest.fn();
-
-        (nodemailer.createTransport as jest.Mock).mockReturnValue({
-            sendMail: sendMailMock,
-        });
-
+        process.env = { ...OLD_ENV };
+        delete process.env.BREVO_API_KEY;
         delete process.env.SMTP_HOST;
         delete process.env.SMTP_PORT;
         delete process.env.SMTP_USER;
         delete process.env.SMTP_PASS;
-        delete process.env.MAIL_FROM;
-        delete process.env.EMAIL_HOST;
-        delete process.env.EMAIL_PORT;
-        delete process.env.EMAIL_USER;
-        delete process.env.EMAIL_PASSWORD;
-
-        process.env.SMTP_HOST = 'smtp.gmail.com';
-        process.env.SMTP_PORT = '587';
-        process.env.SMTP_USER = 'mailer@test.com';
-        process.env.SMTP_PASS = 'smtp-pass';
         process.env.MAIL_FROM = 'noreply@test.com';
-
-        service = new MailService();
+        sendMailMock = jest.fn().mockResolvedValue(undefined);
+        (nodemailer.createTransport as jest.Mock).mockReturnValue({ sendMail: sendMailMock });
+        jest.spyOn(global, 'fetch').mockRestore();
     });
 
-    afterEach(() => {
-        jest.clearAllMocks();
+    afterAll(() => {
+        process.env = OLD_ENV;
     });
 
     it('debe estar definido', () => {
-        expect(service).toBeDefined();
+        expect(new MailService()).toBeDefined();
     });
 
-    it('configura transporter con variables SMTP', () => {
-        expect(nodemailer.createTransport).toHaveBeenCalledWith({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: 'mailer@test.com',
-                pass: 'smtp-pass',
-            },
-        });
-    });
-
-    it('sendMail: renderiza template con contexto y envía correo', async () => {
-        sendMailMock.mockResolvedValue(undefined);
-
-        await service.sendMail(
-            'destino@test.com',
-            'Confirmación de cuenta',
-            '<h1>Hola {{usuario.nombre}}</h1><p>Token: {{token}}</p>',
-            {
-                usuario: { nombre: 'Vicente' },
-                token: 'ABC123',
-            },
-        );
-
-        expect(sendMailMock).toHaveBeenCalledWith({
-            from: 'noreply@test.com',
-            to: 'destino@test.com',
-            subject: 'Confirmación de cuenta',
-            html: '<h1>Hola Vicente</h1><p>Token: ABC123</p>',
-        });
-    });
-
-    it('sendMail: usa EMAIL_* como fallback cuando SMTP_* no existe', async () => {
-        delete process.env.SMTP_HOST;
-        delete process.env.SMTP_PORT;
-        delete process.env.SMTP_USER;
-        delete process.env.SMTP_PASS;
-        delete process.env.MAIL_FROM;
-
-        process.env.EMAIL_HOST = 'smtp.gmail.com';
-        process.env.EMAIL_PORT = '587';
-        process.env.EMAIL_USER = 'fallback@test.com';
-        process.env.EMAIL_PASSWORD = 'email-pass';
-
-        service = new MailService();
-        sendMailMock.mockResolvedValue(undefined);
-
-        await service.sendMail('destino@test.com', 'Asunto', '<p>{{nombre}}</p>', {
-            nombre: 'Prueba',
-        });
-
-        expect(nodemailer.createTransport).toHaveBeenLastCalledWith({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: 'fallback@test.com',
-                pass: 'email-pass',
-            },
-        });
-
-        expect(sendMailMock).toHaveBeenCalledWith({
-            from: 'fallback@test.com',
-            to: 'destino@test.com',
-            subject: 'Asunto',
-            html: '<p>Prueba</p>',
-        });
-    });
-
-    it('sendMail: lanza InternalServerErrorException si falla el envío', async () => {
-        sendMailMock.mockRejectedValue(new Error('SMTP error'));
+    it('retorna false sin enviar si no hay proveedor', async () => {
+        const fetchSpy = jest.spyOn(global, 'fetch');
+        const service = new MailService();
 
         await expect(
             service.sendMail('destino@test.com', 'Asunto', '<p>Hola</p>', {}),
-        ).rejects.toBeInstanceOf(InternalServerErrorException);
+        ).resolves.toBe(false);
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(nodemailer.createTransport).not.toHaveBeenCalled();
+    });
+
+    it('renderiza template y llama a Brevo cuando hay API key', async () => {
+        process.env.BREVO_API_KEY = 'test-key';
+        const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response);
+        const service = new MailService();
+
+        const result = await service.sendMail(
+            'destino@test.com',
+            'Confirmación de cuenta',
+            '<h1>Hola {{usuario.nombre}}</h1><p>Token: {{token}}</p>',
+            { usuario: { nombre: 'Vicente' }, token: 'ABC123' },
+        );
+
+        expect(result).toBe(true);
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://api.brevo.com/v3/smtp/email',
+            expect.objectContaining({ method: 'POST' }),
+        );
+        const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+        expect(body.to).toEqual([{ email: 'destino@test.com' }]);
+        expect(body.htmlContent).toBe('<h1>Hola Vicente</h1><p>Token: ABC123</p>');
+    });
+
+    it('usa SMTP (nodemailer) cuando no hay Brevo pero sí SMTP_HOST', async () => {
+        process.env.SMTP_HOST = 'maildev';
+        process.env.SMTP_PORT = '1025';
+        const service = new MailService();
+
+        const result = await service.sendMail('destino@test.com', 'Asunto', '<p>Hola {{nombre}}</p>', {
+            nombre: 'Vicente',
+        });
+
+        expect(result).toBe(true);
+        expect(nodemailer.createTransport).toHaveBeenCalledWith(
+            expect.objectContaining({ host: 'maildev', port: 1025 }),
+        );
+        expect(sendMailMock).toHaveBeenCalledWith(
+            expect.objectContaining({ to: 'destino@test.com', html: '<p>Hola Vicente</p>' }),
+        );
+    });
+
+    it('lanza error si Brevo responde con fallo', async () => {
+        process.env.BREVO_API_KEY = 'test-key';
+        jest.spyOn(global, 'fetch').mockResolvedValue({
+            ok: false,
+            status: 401,
+            text: async () => 'unauthorized',
+        } as Response);
+        const service = new MailService();
+
+        await expect(
+            service.sendMail('destino@test.com', 'Asunto', '<p>Hola</p>', {}),
+        ).rejects.toThrow('No se pudo enviar el correo');
+    });
+
+    it('lanza error si SMTP falla', async () => {
+        process.env.SMTP_HOST = 'maildev';
+        sendMailMock.mockRejectedValue(new Error('SMTP error'));
+        const service = new MailService();
+
+        await expect(
+            service.sendMail('destino@test.com', 'Asunto', '<p>Hola</p>', {}),
+        ).rejects.toThrow('No se pudo enviar el correo');
     });
 });

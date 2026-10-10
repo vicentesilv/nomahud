@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, ParseEnumPipe, ParseIntPipe, Patch, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Response } from 'express';
@@ -11,20 +11,47 @@ import { User } from '../common/decorators/user.decorator';
 import * as path from 'path';
 import * as fs from 'fs';
 
+const MAX_DOC_SIZE = 10 * 1024 * 1024;
+const EXTENSIONES_PERMITIDAS = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.txt', '.csv', '.docx', '.xlsx', '.pptx']);
+const MIMES_PERMITIDOS = new Set([
+    'application/pdf',
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'text/plain',
+    'text/csv',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+]);
+
+function filtroArchivoSeguro(_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!EXTENSIONES_PERMITIDAS.has(ext) || !MIMES_PERMITIDOS.has(file.mimetype)) {
+        cb(new BadRequestException('Tipo de archivo no permitido'), false);
+        return;
+    }
+    cb(null, true);
+}
+
+function sanitizarNombreDescarga(nombre: string): string {
+    return nombre.replace(/["\r\n\\]/g, '_').slice(0, 150) || 'documento';
+}
+
 @Controller('documentos')
 @UseGuards(JwtAuthGuard)
 export class DocumentosController {
     constructor(private readonly documentosService: DocumentosService) {}
 
     @Post()
-    @UseInterceptors(FileInterceptor('archivo', { storage: memoryStorage() }))
+    @UseInterceptors(FileInterceptor('archivo', { storage: memoryStorage(), limits: { fileSize: MAX_DOC_SIZE }, fileFilter: filtroArchivoSeguro }))
     async upload(
         @User() usuario: Usuario,
         @UploadedFile() file: Express.Multer.File,
         @Body() dto: CrearDocumentoDto,
     ) {
         if (!file) {
-            throw new Error('Archivo es requerido');
+            throw new BadRequestException('Archivo es requerido');
         }
         return this.documentosService.create(usuario.id, file, dto);
     }
@@ -32,7 +59,7 @@ export class DocumentosController {
     @Get()
     async findAll(
         @User() usuario: Usuario,
-        @Query('tipo') tipo?: string,
+        @Query('tipo', new ParseEnumPipe(['proyecto', 'viaje'], { optional: true })) tipo?: 'proyecto' | 'viaje',
     ) {
         return this.documentosService.findAll(usuario.id, tipo);
     }
@@ -51,9 +78,9 @@ export class DocumentosController {
         const doc = await this.documentosService.findOne(id, usuario.id);
         const ruta = this.documentosService.getRutaArchivo(doc.archivo);
         if (!fs.existsSync(ruta)) {
-            throw new Error('Archivo no encontrado en el servidor');
+            throw new NotFoundException('Archivo no encontrado en el servidor');
         }
-        res.setHeader('Content-Disposition', `inline; filename="${doc.nombre}"`);
+        res.setHeader('Content-Disposition', `inline; filename="${sanitizarNombreDescarga(doc.nombre)}"`);
         res.setHeader('Content-Type', doc.mimeType || 'application/octet-stream');
         res.sendFile(path.resolve(ruta));
     }
@@ -68,13 +95,13 @@ export class DocumentosController {
     }
 
     @Put(':id/archivo')
-    @UseInterceptors(FileInterceptor('archivo', { storage: memoryStorage() }))
+    @UseInterceptors(FileInterceptor('archivo', { storage: memoryStorage(), limits: { fileSize: MAX_DOC_SIZE }, fileFilter: filtroArchivoSeguro }))
     async reemplazarArchivo(
         @User() usuario: Usuario,
         @Param('id', ParseIntPipe) id: number,
         @UploadedFile() file: Express.Multer.File,
     ) {
-        if (!file) throw new Error('Archivo es requerido');
+        if (!file) throw new BadRequestException('Archivo es requerido');
         return this.documentosService.reemplazarArchivo(id, usuario.id, file);
     }
 

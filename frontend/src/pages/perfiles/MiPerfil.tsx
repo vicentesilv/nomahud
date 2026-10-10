@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import api from '../../services/api';
+import api, { resolvePublicUrl } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Perfil {
@@ -260,9 +260,7 @@ export default function MiPerfil() {
     try {
       const formData = new FormData();
       formData.append('avatar', file);
-      const { data } = await api.post('/perfiles/mi-perfil/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post('/perfiles/mi-perfil/avatar', formData);
       setPerfil(data);
       setAvatarPreview(data.avatarUrl);
       setForm({ ...form, avatarUrl: data.avatarUrl });
@@ -387,7 +385,7 @@ export default function MiPerfil() {
             <div className="perfil-hero-bg" />
             <div className="perfil-hero-content">
               {perfil.avatarUrl ? (
-                <img src={perfil.avatarUrl} alt="Avatar" className="perfil-avatar" />
+                <img src={resolvePublicUrl(perfil.avatarUrl)} alt="Avatar" className="perfil-avatar" />
               ) : (
                 <div className="perfil-avatar perfil-avatar-placeholder">{initials}</div>
               )}
@@ -493,7 +491,7 @@ export default function MiPerfil() {
                 <div className="avatar-upload-preview">
                   {avatarPreview ? (
                     <img
-                      src={avatarPreview}
+                      src={resolvePublicUrl(avatarPreview)}
                       alt="Preview"
                       className="avatar-preview-img"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

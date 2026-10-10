@@ -1,5 +1,6 @@
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -29,6 +30,7 @@ describe('AuthService', () => {
 	let jwtService: jest.Mocked<JwtService>;
 	let usuariosService: jest.Mocked<UsuariosService>;
 	let mailService: jest.Mocked<MailService>;
+	let configService: jest.Mocked<ConfigService>;
 	let authTokenRepository: {
 		create: jest.Mock;
 		findOne: jest.Mock;
@@ -69,6 +71,22 @@ describe('AuthService', () => {
 					},
 				},
 				{
+					provide: ConfigService,
+					useValue: {
+						get: jest.fn((key: string, def?: unknown) => {
+							if (key === 'JWT_SECRET') return 'test-secret';
+							if (key === 'JWT_EXPIRES_IN') return '24h';
+							if (key === 'FRONTEND_URL') return 'http://localhost:3000';
+							if (key === 'NODE_ENV') return 'test';
+							return def;
+						}),
+						getOrThrow: jest.fn((key: string) => {
+							if (key === 'JWT_SECRET') return 'test-secret';
+							throw new Error(`Missing ${key}`);
+						}),
+					},
+				},
+				{
 					provide: getRepositoryToken(AuthToken),
 					useValue: {
 						create: jest.fn(),
@@ -84,6 +102,7 @@ describe('AuthService', () => {
 		usuariosService = module.get(UsuariosService);
 		mailService = module.get(MailService);
 		authTokenRepository = module.get(getRepositoryToken(AuthToken));
+		configService = module.get(ConfigService);
 	});
 
 	afterEach(() => {
@@ -108,8 +127,14 @@ describe('AuthService', () => {
 	});
 
 	it('generateToken: firma JWT con secret y expires del env', () => {
-		process.env.JWT_SECRET = 'super-secret';
-		process.env.JWT_EXPIRES_IN = '48h';
+		(configService.get as jest.Mock).mockImplementation((key: string) => {
+			if (key === 'JWT_EXPIRES_IN') return '48h';
+			return undefined;
+		});
+		(configService.getOrThrow as jest.Mock).mockImplementation((key: string) => {
+			if (key === 'JWT_SECRET') return 'super-secret';
+			throw new Error(`Missing ${key}`);
+		});
 		jwtService.sign.mockReturnValue('jwt-token');
 
 		const token = (service as any).generateToken(1, 'vicente@mail.com');
@@ -122,7 +147,11 @@ describe('AuthService', () => {
 	});
 
 	it('generateToken: usa 24h por defecto si no hay JWT_EXPIRES_IN', () => {
-		process.env.JWT_SECRET = 'super-secret';
+		(configService.get as jest.Mock).mockImplementation(() => undefined);
+		(configService.getOrThrow as jest.Mock).mockImplementation((key: string) => {
+			if (key === 'JWT_SECRET') return 'super-secret';
+			throw new Error(`Missing ${key}`);
+		});
 		jwtService.sign.mockReturnValue('jwt-token');
 
 		(service as any).generateToken(1, 'vicente@mail.com');
@@ -264,8 +293,12 @@ describe('AuthService', () => {
 		} as any);
 		authTokenRepository.create.mockReturnValue({ id: 1 } as AuthToken);
 		authTokenRepository.save.mockResolvedValue({ id: 1 } as AuthToken);
-		(mailService.sendMail as jest.Mock).mockResolvedValue(undefined);
-		process.env.FRONTEND_URL = 'http://frontend.test';
+		(mailService.sendMail as jest.Mock).mockResolvedValue(true);
+		(configService.get as jest.Mock).mockImplementation((key: string) => {
+			if (key === 'FRONTEND_URL') return 'http://frontend.test';
+			if (key === 'NODE_ENV') return 'test';
+			return undefined;
+		});
 
 		const result = await service.register(
 			'Vicente',
@@ -386,7 +419,7 @@ describe('AuthService', () => {
 		} as any);
 		authTokenRepository.create.mockReturnValue({ id: 2 } as any);
 		authTokenRepository.save.mockResolvedValue({ id: 2 } as any);
-		(mailService.sendMail as jest.Mock).mockResolvedValue(undefined);
+		(mailService.sendMail as jest.Mock).mockResolvedValue(true);
 
 		const result = await service.reenviarConfirmacion('vicente@mail.com');
 
@@ -450,8 +483,11 @@ describe('AuthService', () => {
 		usuariosService.findByEmail.mockResolvedValue(usuario);
 		authTokenRepository.create.mockReturnValue({ id: 15 } as any);
 		authTokenRepository.save.mockResolvedValue({ id: 15 } as any);
-		(mailService.sendMail as jest.Mock).mockResolvedValue(undefined);
-		process.env.FRONTEND_URL = 'http://frontend.test';
+		(mailService.sendMail as jest.Mock).mockResolvedValue(true);
+		(configService.get as jest.Mock).mockImplementation((key: string) => {
+			if (key === 'FRONTEND_URL') return 'http://frontend.test';
+			return undefined;
+		});
 
 		const result = await service.solicitarRecuperacion('vicente@mail.com');
 

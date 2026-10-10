@@ -1,25 +1,24 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { hash } from 'bcrypt';
-import { CreateUsuarioDto } from './dtos/create.usuario.dto';
+import { Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
 import { Usuario } from './entitys/usuarios.entity';
 import { UsuariosService } from './usuarios.service';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UpdateUsuarioDto } from './dtos/update.usuario.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { User } from '../common/decorators/user.decorator';
 
 @Controller('usuarios')
+@UseGuards(JwtAuthGuard)
 export class UsuariosController {
     constructor(private readonly usuariosService: UsuariosService) {}
 
-    @Post()
-    async createUser(@Body() createUsuarioDto: CreateUsuarioDto): Promise<Usuario> {
-        const contrasenaHasheada = await hash(createUsuarioDto.contrasena, 10);
-        return this.usuariosService.createUsuario({
-            ...createUsuarioDto,
-            contrasena: contrasenaHasheada,
-        });
+    private verificarPropietario(solicitanteId: number, recursoId: number): void {
+        if (solicitanteId !== recursoId) {
+            throw new ForbiddenException('No tienes permiso para acceder a este usuario');
+        }
     }
+
     @Get(':id')
-    // @UseGuards(JwtAuthGuard)
-    async getUser(@Param('id') id: number): Promise<Usuario> {
+    async getUser(@User('id') solicitanteId: number, @Param('id', ParseIntPipe) id: number): Promise<Usuario> {
+        this.verificarPropietario(solicitanteId, id);
         const usuario = await this.usuariosService.findById(id);
         if (!usuario) {
             throw new NotFoundException('Usuario no existe');
@@ -28,12 +27,18 @@ export class UsuariosController {
     }
 
     @Patch(':id')
-    async updateUser(@Param('id') id: number, @Body() updateUsuarioDto: Partial<CreateUsuarioDto>) {
+    async updateUser(
+        @User('id') solicitanteId: number,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateUsuarioDto: UpdateUsuarioDto,
+    ) {
+        this.verificarPropietario(solicitanteId, id);
         return this.usuariosService.updateUsuario(id, updateUsuarioDto);
     }
 
     @Delete(':id')
-    async deleteUser(@Param('id') id: number) {
+    async deleteUser(@User('id') solicitanteId: number, @Param('id', ParseIntPipe) id: number) {
+        this.verificarPropietario(solicitanteId, id);
         return this.usuariosService.deleteUsuario(id);
     }
 

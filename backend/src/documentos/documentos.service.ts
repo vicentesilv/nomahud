@@ -18,12 +18,32 @@ export class DocumentosService {
         fs.mkdir(this.uploadDir, { recursive: true }).catch(() => {});
     }
 
+    private validarArchivo(file: Express.Multer.File): string {
+        const ext = path.extname(file.originalname).toLowerCase();
+        const permitidas = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.txt', '.csv', '.docx', '.xlsx', '.pptx']);
+        if (!permitidas.has(ext)) {
+            throw new BadRequestException('Tipo de archivo no permitido');
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            throw new BadRequestException('Archivo supera los 10MB');
+        }
+        return ext;
+    }
+
+    private rutaSegura(archivo: string): string {
+        const base = path.basename(archivo);
+        if (!base || base !== archivo || base.includes('..')) {
+            throw new BadRequestException('Nombre de archivo inválido');
+        }
+        return path.join(this.uploadDir, base);
+    }
+
     async create(creadorId: number, file: Express.Multer.File, dto: CrearDocumentoDto): Promise<Documento> {
-        const ext = path.extname(file.originalname);
+        const ext = this.validarArchivo(file);
         const nombre = dto.nombre || file.originalname;
         const archivo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
 
-        await fs.writeFile(path.join(this.uploadDir, archivo), file.buffer);
+        await fs.writeFile(this.rutaSegura(archivo), file.buffer);
 
         const doc = this.documentoRepository.create({
             nombre,
@@ -60,11 +80,11 @@ export class DocumentosService {
 
     async reemplazarArchivo(id: number, creadorId: number, file: Express.Multer.File): Promise<Documento> {
         const doc = await this.findOne(id, creadorId);
-        const rutaVieja = path.join(this.uploadDir, doc.archivo);
+        const rutaVieja = this.rutaSegura(doc.archivo);
         await fs.unlink(rutaVieja).catch(() => {});
-        const ext = path.extname(file.originalname);
+        const ext = this.validarArchivo(file);
         const archivo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-        await fs.writeFile(path.join(this.uploadDir, archivo), file.buffer);
+        await fs.writeFile(this.rutaSegura(archivo), file.buffer);
         doc.archivo = archivo;
         doc.mimeType = file.mimetype;
         doc.size = file.size;
@@ -73,12 +93,12 @@ export class DocumentosService {
 
     async remove(id: number, creadorId: number): Promise<void> {
         const doc = await this.findOne(id, creadorId);
-        const ruta = path.join(this.uploadDir, doc.archivo);
+        const ruta = this.rutaSegura(doc.archivo);
         await fs.unlink(ruta).catch(() => {});
         await this.documentoRepository.remove(doc);
     }
 
     getRutaArchivo(archivo: string): string {
-        return path.join(this.uploadDir, archivo);
+        return this.rutaSegura(archivo);
     }
 }

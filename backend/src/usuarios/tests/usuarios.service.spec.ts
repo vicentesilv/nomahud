@@ -186,11 +186,11 @@ describe('UsuariosService', () => {
     repo.findOne.mockResolvedValue(usuarioExistente);
 
     await expect(
-      service.updateUsuario(1, { correo: 'nuevo@mail.com' }),
+      service.updateUsuario(1, { correo: 'nuevo@mail.com' } as any),
     ).rejects.toBeInstanceOf(BadRequestException);
 
     await expect(
-      service.updateUsuario(1, { fechaNacimiento: new Date('2001-01-01') }),
+      service.updateUsuario(1, { fechaNacimiento: new Date('2001-01-01') } as any),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
