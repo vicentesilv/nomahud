@@ -35,9 +35,9 @@ describe('DashboardController', () => {
     };
     service.getResumen.mockResolvedValue(mockResumen as any);
 
-    const result = await controller.getResumen(1);
+    const result = await controller.getResumen(1, undefined);
 
-    expect(service.getResumen).toHaveBeenCalledWith(1);
+    expect(service.getResumen).toHaveBeenCalledWith(1, undefined);
     expect(result.proyectosActivos).toBe(3);
   });
 });

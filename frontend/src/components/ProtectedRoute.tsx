@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 /** Secciones permitidas para cuentas de invitado (resto → /proyectos). */
-const RUTAS_INVITADO = [/^\/proyectos(\/.*)?$/, /^\/mi-perfil\/?$/];
+const RUTAS_INVITADO = [/^\/proyectos\/?$/, /^\/proyectos\/\d+\/?$/, /^\/mi-perfil\/?$/];
 
 export default function ProtectedRoute() {
   const { usuario, token, loading } = useAuth();

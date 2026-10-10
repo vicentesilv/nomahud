@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api, { extraerLista } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDivisa } from '../../contexts/DivisaContext';
 
 interface Proyecto {
   id: number;
@@ -12,6 +13,7 @@ interface Proyecto {
   cliente: string;
   clienteRel: { id: number; nombre: string; empresa: string } | null;
   ganancia: number;
+  moneda: string;
   fechaInicio: string;
   fechaFin: string;
   tareas: any[];
@@ -87,6 +89,7 @@ function IconGrid() {
 
 export default function ListaProyectos() {
   const { usuario } = useAuth();
+  const { formatear } = useDivisa();
   const esInvitado = usuario?.rol === 'invitado';
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,7 +200,7 @@ export default function ListaProyectos() {
                 )}
                 <span><IconList /> {tareasTotales(p)} tareas ({tareasPendientes(p)} pendientes)</span>
                 {p.ganancia != null && (
-                  <span><IconDollar /> ${Number(p.ganancia).toLocaleString()}</span>
+                  <span><IconDollar /> {formatear(Number(p.ganancia), p.moneda)}</span>
                 )}
                 {p.fechaFin && (
                   <span><IconClock /> {new Date(p.fechaFin).toLocaleDateString()}</span>
@@ -233,7 +236,7 @@ export default function ListaProyectos() {
               <div className="proyecto-list-item-meta">
                 {p.clienteRel && <span>{p.clienteRel.nombre}</span>}
                 <span>{tareasTotales(p)} tareas</span>
-                {p.ganancia != null && <span>${Number(p.ganancia).toLocaleString()}</span>}
+                {p.ganancia != null && <span>{formatear(Number(p.ganancia), p.moneda)}</span>}
               </div>
             </Link>
           ))}

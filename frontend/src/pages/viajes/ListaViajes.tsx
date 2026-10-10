@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api, { extraerLista } from '../../services/api';
+import { useDivisa } from '../../contexts/DivisaContext';
 
 interface Viaje {
   id: number;
@@ -63,6 +64,7 @@ function IconTravel() {
 
 
 export default function ListaViajes() {
+  const { formatear } = useDivisa();
   const [viajes, setViajes] = useState<Viaje[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -138,7 +140,7 @@ export default function ListaViajes() {
                   </span>
                   {v.presupuesto != null && (
                     <span>
-                      <IconDollar /> {Number(v.presupuesto).toLocaleString('es-MX', { style: 'currency', currency: v.moneda || 'MXN' })}
+                      <IconDollar /> {formatear(Number(v.presupuesto), v.moneda)}
                     </span>
                   )}
                 </div>

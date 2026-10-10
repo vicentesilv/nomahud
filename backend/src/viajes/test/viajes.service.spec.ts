@@ -70,7 +70,7 @@ describe('ViajesService', () => {
     ({ id: 1, creadorId: 1, destino: 'Paris', fechaInicio: '2026-07-01', fechaFin: '2026-07-10', estado: 'planificado', presupuesto: null, moneda: 'MXN', autoGastoRegistrado: false, ...overrides }) as Viaje;
 
   it('create: crea viaje con creadorId', async () => {
-    finanzasService.getResumen.mockResolvedValue({ balance: 5000, totalIngresos: 5000, totalGastos: 0, ingresos: 5000, gastos: 0 });
+    finanzasService.getResumen.mockResolvedValue({ moneda: 'mixta', balance: 5000, totalIngresos: 5000, totalGastos: 0, ingresos: 5000, gastos: 0 });
     const dto = { destino: 'Paris', fechaInicio: '2026-07-01', presupuesto: 1000, moneda: 'MXN' } as any;
     viajeRepo.create.mockReturnValue(dto as Viaje);
     viajeRepo.save.mockResolvedValue({ id: 1, ...dto, creadorId: 1 } as Viaje);
@@ -88,7 +88,7 @@ describe('ViajesService', () => {
   });
 
   it('create: lanza BadRequestException si presupuesto supera balance', async () => {
-    finanzasService.getResumen.mockResolvedValue({ balance: 100, totalIngresos: 100, totalGastos: 0, ingresos: 100, gastos: 0 });
+    finanzasService.getResumen.mockResolvedValue({ moneda: 'mixta', balance: 100, totalIngresos: 100, totalGastos: 0, ingresos: 100, gastos: 0 });
     const dto = { destino: 'Paris', fechaInicio: '2026-07-01', presupuesto: 500, moneda: 'MXN' } as any;
     viajeRepo.create.mockReturnValue(dto as Viaje);
 
@@ -132,7 +132,7 @@ describe('ViajesService', () => {
     viajeRepo.save
       .mockResolvedValueOnce(updatedViaje)
       .mockResolvedValueOnce({ ...updatedViaje, autoGastoRegistrado: true });
-    finanzasService.getResumen.mockResolvedValue({ balance: 5000, totalIngresos: 5000, totalGastos: 0, ingresos: 5000, gastos: 0 });
+    finanzasService.getResumen.mockResolvedValue({ moneda: 'mixta', balance: 5000, totalIngresos: 5000, totalGastos: 0, ingresos: 5000, gastos: 0 });
 
     await service.update(1, 1, { estado: 'completado' } as any);
 

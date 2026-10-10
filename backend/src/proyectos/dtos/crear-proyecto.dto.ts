@@ -37,4 +37,9 @@ export class CrearProyectoDto {
     @IsOptional()
     @IsNumber()
     ganancia?: number;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(10)
+    moneda?: string;
 }

@@ -263,6 +263,32 @@ describe('ProyectosService', () => {
     await expect(service.aceptarInvitacion('token-crudo')).rejects.toThrow('registrate primero');
   });
 
+  it('cambiarRolMiembro: propietario actualiza rol', async () => {
+    repo.findOne.mockResolvedValue({ id: 1, creadorId: 1 } as Proyecto);
+    const miembroRepo = service['miembroRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock };
+    const miembro = { id: 2, proyectoId: 1, usuarioId: 5, rol: 'lector' };
+    miembroRepo.findOne.mockResolvedValue(miembro);
+    miembroRepo.save.mockResolvedValue({ ...miembro, rol: 'editor' });
+
+    await service.cambiarRolMiembro(1, 1, 5, 'editor');
+
+    expect(miembroRepo.save).toHaveBeenCalledWith(expect.objectContaining({ rol: 'editor' }));
+  });
+
+  it('cambiarRolMiembro: no propietario no puede', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    await expect(service.cambiarRolMiembro(1, 9, 5, 'editor')).rejects.toThrow('Proyecto no encontrado');
+  });
+
+  it('cambiarRolMiembro: miembro inexistente', async () => {
+    repo.findOne.mockResolvedValue({ id: 1, creadorId: 1 } as Proyecto);
+    const miembroRepo = service['miembroRepository'] as unknown as { findOne: jest.Mock };
+    miembroRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.cambiarRolMiembro(1, 1, 99, 'editor')).rejects.toThrow('Miembro no encontrado');
+  });
+
   it('vistaPreviaInvitacion: muestra datos públicos', async () => {
     const invRepo = service['invitacionRepository'] as unknown as { findOne: jest.Mock };
     invRepo.findOne.mockResolvedValue({

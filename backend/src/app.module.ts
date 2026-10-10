@@ -22,6 +22,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { StorageModule } from './storage/storage.module';
+import { DivisasModule } from './divisas/divisas.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { StorageModule } from './storage/storage.module';
     DashboardModule,
     NotificacionesModule,
     StorageModule,
+    DivisasModule,
   ],
   controllers: [AppController, SaludController],
   providers: [AppService, { provide: APP_INTERCEPTOR, useClass: InvitadoInterceptor }],

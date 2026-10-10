@@ -23,8 +23,8 @@ export class FinanzasController {
     }
 
     @Get('resumen')
-    async getResumen(@User() usuario: Usuario) {
-        return this.finanzasService.getResumen(usuario.id);
+    async getResumen(@User() usuario: Usuario, @Query('moneda') moneda?: string) {
+        return this.finanzasService.getResumen(usuario.id, moneda);
     }
 
     @Get(':id')

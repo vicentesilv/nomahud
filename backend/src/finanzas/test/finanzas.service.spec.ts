@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { FinanzasService } from '../finanzas.service';
 import { Transaccion } from '../entities/transaccion.entity';
+import { DivisasService } from '../../divisas/divisas.service';
 
 describe('FinanzasService', () => {
   let service: FinanzasService;
@@ -31,6 +32,10 @@ describe('FinanzasService', () => {
             remove: jest.fn(),
             manager: { findOne: jest.fn().mockResolvedValue({ id: 1, creadorId: 1 }) },
           },
+        },
+        {
+          provide: DivisasService,
+          useValue: { convertir: jest.fn(async (m: number) => m) },
         },
       ],
     }).compile();
@@ -131,6 +136,25 @@ describe('FinanzasService', () => {
       balance: 0,
       ingresos: 0,
       gastos: 0,
+      moneda: 'mixta',
     });
+  });
+
+  it('getResumen: convierte a la moneda pedida', async () => {
+    const transacciones = [
+      { tipo: 'ingreso', monto: 100, moneda: 'USD' } as Transaccion,
+      { tipo: 'gasto', monto: 100, moneda: 'MXN' } as Transaccion,
+    ];
+    repo.find.mockResolvedValue(transacciones);
+    const divisas = service['divisasService'] as unknown as { convertir: jest.Mock };
+    divisas.convertir.mockImplementation(async (m: number, de: string) => (de === 'MXN' ? m / 10 : m));
+
+    const result = await service.getResumen(1, 'USD');
+
+    expect(divisas.convertir).toHaveBeenCalledWith(100, 'MXN', 'USD');
+    expect(result.totalIngresos).toBe(100);
+    expect(result.totalGastos).toBe(10);
+    expect(result.balance).toBe(90);
+    expect(result.moneda).toBe('USD');
   });
 });

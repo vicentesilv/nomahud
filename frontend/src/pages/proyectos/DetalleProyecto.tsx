@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
 import EquipoProyecto from '../../components/EquipoProyecto';
 
 interface Tarea {
@@ -26,6 +27,7 @@ interface Proyecto {
   cliente: string;
   clienteRel: { id: number; nombre: string; empresa: string } | null;
   ganancia: number;
+  moneda: string;
   fechaInicio: string;
   fechaFin: string;
   tareas: Tarea[];
@@ -48,6 +50,7 @@ const COLUMNAS = [
   { key: 'pendiente', label: 'Pendiente' },
   { key: 'en_progreso', label: 'En progreso' },
   { key: 'completada', label: 'Completada' },
+  { key: 'cancelada', label: 'Cancelada' },
 ];
 
 function IconArrowLeft() {
@@ -123,7 +126,8 @@ export default function DetalleProyecto() {
   const [tareaForm, setTareaForm] = useState({ titulo: '', descripcion: '', prioridad: 'media', fechaVencimiento: '', estimacionHoras: '' });
   const [tareaError, setTareaError] = useState('');
   const [showProyectoForm, setShowProyectoForm] = useState(false);
-  const [proyectoForm, setProyectoForm] = useState({ ganancia: '', estado: '' });
+  const [proyectoForm, setProyectoForm] = useState({ ganancia: '', estado: '', moneda: 'USD' });
+  const { formatear } = useDivisa();
   const [vistaTareas, setVistaTareas] = useState<'kanban' | 'lista'>('kanban');
 
   const cargarProyecto = () => {
@@ -185,12 +189,16 @@ export default function DetalleProyecto() {
     }
   };
 
-  const cambiarEstadoTarea = async (tarea: Tarea, nuevoEstado: string) => {
+  const cambiarEstadoTarea = async (tarea: Tarea | number, nuevoEstado: string) => {
+    const id = typeof tarea === 'number' ? tarea : tarea.id;
     try {
-      await api.patch(`/tareas/${tarea.id}`, { estado: nuevoEstado });
+      await api.patch(`/tareas/${id}`, { estado: nuevoEstado });
       cargarProyecto();
     } catch {}
   };
+
+  const [colArrastrada, setColArrastrada] = useState<string | null>(null);
+  const [tareaArrastrando, setTareaArrastrando] = useState<number | null>(null);
 
   const eliminarTarea = async (tareaId: number) => {
     if (!confirm('¿Eliminar esta tarea?')) return;
@@ -212,6 +220,7 @@ export default function DetalleProyecto() {
     setProyectoForm({
       ganancia: proyecto?.ganancia ? String(proyecto.ganancia) : '',
       estado: proyecto?.estado || 'activo',
+      moneda: proyecto?.moneda || 'USD',
     });
     setShowProyectoForm(true);
   };
@@ -219,7 +228,7 @@ export default function DetalleProyecto() {
   const guardarProyecto = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      const body: any = { estado: proyectoForm.estado };
+      const body: any = { estado: proyectoForm.estado, moneda: proyectoForm.moneda };
       if (proyectoForm.ganancia) body.ganancia = Number(proyectoForm.ganancia);
       await api.patch(`/proyectos/${id}`, body);
       setShowProyectoForm(false);
@@ -306,7 +315,7 @@ export default function DetalleProyecto() {
         {proyecto.ganancia != null && (
           <div className="proyecto-info-item">
             <span className="proyecto-info-label">Ganancia</span>
-            <span className="proyecto-info-value">${Number(proyecto.ganancia).toLocaleString()}</span>
+            <span className="proyecto-info-value">{formatear(Number(proyecto.ganancia), proyecto.moneda)}</span>
           </div>
         )}
         <div className="proyecto-info-item">
@@ -351,20 +360,39 @@ export default function DetalleProyecto() {
             const colTareas = tareasPorColumna(col.key);
             const pct = tareas.length > 0 ? Math.round((tareas.filter(t => t.estado === 'completada').length / tareas.length) * 100) : 0;
             return (
-              <div key={col.key} className="kanban-columna">
+              <div
+                key={col.key}
+                className={`kanban-columna ${colArrastrada === col.key ? 'kanban-columna-arrastrando' : ''}`}
+                onDragOver={puedeEditarTareas ? (e) => { e.preventDefault(); setColArrastrada(col.key); } : undefined}
+                onDragLeave={() => setColArrastrada((c) => (c === col.key ? null : c))}
+                onDrop={puedeEditarTareas ? (e) => {
+                  e.preventDefault();
+                  setColArrastrada(null);
+                  setTareaArrastrando(null);
+                  const tid = Number(e.dataTransfer.getData('text/tarea-id'));
+                  if (tid) cambiarEstadoTarea(tid, col.key);
+                } : undefined}
+              >
                 <div className="kanban-columna-header">
                   <span className="kanban-columna-titulo">{col.label}</span>
                   <span className="kanban-columna-count">{colTareas.length}</span>
                 </div>
                 {colTareas.length === 0 ? (
-                  <p className="kanban-columna-empty">Sin tareas</p>
+                  <p className="kanban-columna-empty">{puedeEditarTareas ? 'Arrastrá tareas aquí' : 'Sin tareas'}</p>
                 ) : (
                   colTareas.map((t) => {
                     const daysLeft = t.fechaVencimiento
                       ? Math.ceil((new Date(t.fechaVencimiento).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                       : null;
                     return (
-                      <div key={t.id} className={`kanban-tarea kanban-tarea-prioridad ${t.prioridad}`} onClick={() => abrirFormEditar(t)}>
+                      <div
+                        key={t.id}
+                        className={`kanban-tarea kanban-tarea-prioridad ${t.prioridad} ${tareaArrastrando === t.id ? 'kanban-tarea-arrastrando' : ''}`}
+                        onClick={() => { if (puedeEditarTareas) abrirFormEditar(t); }}
+                        draggable={puedeEditarTareas}
+                        onDragStart={puedeEditarTareas ? (e) => { e.dataTransfer.setData('text/tarea-id', String(t.id)); e.dataTransfer.effectAllowed = 'move'; setTareaArrastrando(t.id); } : undefined}
+                        onDragEnd={() => { setTareaArrastrando(null); setColArrastrada(null); }}
+                      >
                         <div className="kanban-tarea-titulo">{t.titulo}</div>
                         {t.descripcion && (
                           <div className="kanban-tarea-desc">{t.descripcion}</div>
@@ -380,6 +408,7 @@ export default function DetalleProyecto() {
                             </span>
                           )}
                         </div>
+                        {puedeEditarTareas && (
                         <div className="kanban-tarea-actions">
                           {col.key === 'pendiente' && (
                             <button className="kanban-tarea-btn kanban-tarea-btn-primary" onClick={(e) => { e.stopPropagation(); cambiarEstadoTarea(t, 'en_progreso'); }}>
@@ -405,6 +434,7 @@ export default function DetalleProyecto() {
                             <IconTrash />
                           </button>
                         </div>
+                        )}
                       </div>
                     );
                   })
@@ -435,7 +465,7 @@ export default function DetalleProyecto() {
                   key={t.id}
                   className="proyecto-tarea-item"
                   style={{ borderLeftColor: PRIORIDAD_COLOR[t.prioridad] }}
-                  onClick={() => abrirFormEditar(t)}
+                  onClick={() => { if (puedeEditarTareas) abrirFormEditar(t); }}
                 >
                   <div className="proyecto-tarea-item-main">
                     <span className="proyecto-tarea-item-titulo">{t.titulo}</span>
@@ -455,9 +485,11 @@ export default function DetalleProyecto() {
                         {daysLeft < 0 ? 'Vencida' : daysLeft === 0 ? 'Hoy' : `${daysLeft}d`}
                       </span>
                     )}
+                    {puedeEditarTareas && (
                     <button className="kanban-tarea-btn kanban-tarea-btn-danger" onClick={(e) => { e.stopPropagation(); eliminarTarea(t.id); }} title="Eliminar tarea">
                       <IconTrash />
                     </button>
+                    )}
                   </div>
                 </div>
               );
@@ -529,12 +561,18 @@ export default function DetalleProyecto() {
                 </div>
               </div>
               <div className="field">
-                <label>Ganancia (USD)</label>
+                <label>Ganancia</label>
                 <input type="number" value={proyectoForm.ganancia} onChange={(e) => setProyectoForm({ ...proyectoForm, ganancia: e.target.value })} placeholder="5000" />
+              </div>
+              <div className="field">
+                <label>Moneda de la ganancia</label>
+                <select value={proyectoForm.moneda} onChange={(e) => setProyectoForm({ ...proyectoForm, moneda: e.target.value })}>
+                  {MONEDAS.map((m) => (<option key={m} value={m}>{m}</option>))}
+                </select>
               </div>
               {[proyecto?.estado, proyectoForm.estado].includes('completado') && proyectoForm.ganancia && proyecto?.estado !== 'completado' && (
                 <div className="success-msg" style={{ fontSize: '0.8rem' }}>
-                  Al marcar como completado se creará un ingreso en Finanzas por ${Number(proyectoForm.ganancia).toLocaleString()}
+                  Al marcar como completado se creará un ingreso en Finanzas por {formatear(Number(proyectoForm.ganancia), proyectoForm.moneda)}
                 </div>
               )}
               <div className="form-actions" style={{ marginTop: '1.25rem' }}>

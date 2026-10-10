@@ -51,6 +51,9 @@ export class Proyecto {
     @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
     ganancia: number;
 
+    @Column({ type: 'varchar', length: 10, default: 'USD' })
+    moneda: string;
+
     @Column({ type: 'int' })
     creadorId: number;
 

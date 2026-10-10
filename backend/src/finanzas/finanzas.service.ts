@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Transaccion } from './entities/transaccion.entity';
 import { CrearTransaccionDto } from './dtos/crear-transaccion.dto';
 import { ActualizarTransaccionDto } from './dtos/actualizar-transaccion.dto';
+import { DivisasService } from '../divisas/divisas.service';
 import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 import { Proyecto } from '../proyectos/entities/proyecto.entity';
 import { ProyectoMiembro } from '../proyectos/entities/proyecto-miembro.entity';
@@ -14,6 +15,7 @@ export class FinanzasService {
     constructor(
         @InjectRepository(Transaccion)
         private readonly transaccionRepository: Repository<Transaccion>,
+        private readonly divisasService: DivisasService,
     ) {}
 
     private async verificarReferenciasPropias(
@@ -84,16 +86,17 @@ export class FinanzasService {
         await this.transaccionRepository.remove(transaccion);
     }
 
-    async getResumen(creadorId: number): Promise<{ totalIngresos: number; totalGastos: number; balance: number; ingresos: number; gastos: number }> {
+    async getResumen(creadorId: number, moneda?: string): Promise<{ totalIngresos: number; totalGastos: number; balance: number; ingresos: number; gastos: number; moneda: string }> {
         const transacciones = await this.transaccionRepository.find({ where: { creadorId } });
+        const destino = (moneda || 'USD').toUpperCase();
 
-        const ingresos = transacciones
-            .filter((t) => t.tipo === 'ingreso')
-            .reduce((sum, t) => sum + Number(t.monto), 0);
-
-        const gastos = transacciones
-            .filter((t) => t.tipo === 'gasto')
-            .reduce((sum, t) => sum + Number(t.monto), 0);
+        let ingresos = 0;
+        let gastos = 0;
+        for (const t of transacciones) {
+            const monto = moneda ? await this.divisasService.convertir(Number(t.monto), t.moneda || 'USD', destino) : Number(t.monto);
+            if (t.tipo === 'ingreso') ingresos += monto;
+            else gastos += monto;
+        }
 
         return {
             totalIngresos: ingresos,
@@ -101,6 +104,7 @@ export class FinanzasService {
             balance: ingresos - gastos,
             ingresos,
             gastos,
+            moneda: moneda ? destino : 'mixta',
         };
     }
 }

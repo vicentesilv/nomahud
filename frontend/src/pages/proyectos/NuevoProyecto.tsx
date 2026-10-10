@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { extraerLista } from '../../services/api';
+import { MONEDAS } from '../../contexts/DivisaContext';
 
 interface ClienteOption {
   id: number;
@@ -57,6 +58,7 @@ export default function NuevoProyecto() {
     prioridad: 'media',
     clienteId: '',
     ganancia: '',
+    moneda: 'USD',
     fechaInicio: '',
     fechaFin: '',
   });
@@ -87,6 +89,7 @@ export default function NuevoProyecto() {
       if (form.descripcion) body.descripcion = form.descripcion;
       if (form.clienteId) body.clienteId = Number(form.clienteId);
       if (form.ganancia) body.ganancia = Number(form.ganancia);
+      if (form.moneda) body.moneda = form.moneda;
       if (form.fechaInicio) body.fechaInicio = form.fechaInicio;
       if (form.fechaFin) body.fechaFin = form.fechaFin;
 
@@ -165,9 +168,17 @@ export default function NuevoProyecto() {
             <h3>Presupuesto</h3>
           </div>
 
-          <div className="field">
-            <label>Ganancia estimada (USD)</label>
-            <input name="ganancia" type="number" value={form.ganancia} onChange={handleChange} placeholder="5000" />
+          <div className="field-row">
+            <div className="field">
+              <label>Ganancia estimada</label>
+              <input name="ganancia" type="number" value={form.ganancia} onChange={handleChange} placeholder="5000" />
+            </div>
+            <div className="field">
+              <label>Moneda</label>
+              <select name="moneda" value={form.moneda} onChange={handleChange}>
+                {MONEDAS.map((m) => (<option key={m} value={m}>{m}</option>))}
+              </select>
+            </div>
           </div>
         </div>
 

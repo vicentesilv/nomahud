@@ -38,4 +38,9 @@ export class ActualizarProyectoDto {
     @IsOptional()
     @IsNumber()
     ganancia?: number;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(10)
+    moneda?: string;
 }

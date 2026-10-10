@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useDivisa } from '../contexts/DivisaContext';
 
 interface ResumenDashboard {
   proyectosActivos: number;
@@ -82,15 +83,16 @@ function IconAlert() {
 }
 
 export default function ListaDashboard() {
+  const { moneda, formatear } = useDivisa();
   const [data, setData] = useState<ResumenDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/dashboard')
+    api.get('/dashboard', { params: { moneda } })
       .then(({ data }) => { setData(data); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [moneda]);
 
   if (loading) {
     return (
@@ -161,7 +163,7 @@ export default function ListaDashboard() {
         <div className="stat-card stat-card-green">
           <div className="stat-icon"><IconDollar /></div>
           <div className="stat-info">
-            <span className="stat-value">${data.resumenFinanzas.ingresos.toFixed(0)}</span>
+            <span className="stat-value">{formatear(data.resumenFinanzas.ingresos, moneda)}</span>
             <span className="stat-label">Ingresos del mes</span>
           </div>
         </div>
@@ -177,7 +179,7 @@ export default function ListaDashboard() {
       <div className="dashboard-finanzas">
         <div className="finanzas-card">
           <span className="finanzas-label">Gastos del mes</span>
-          <span className="finanzas-value finanzas-value-negative">${data.resumenFinanzas.gastos.toFixed(2)}</span>
+          <span className="finanzas-value finanzas-value-negative">{formatear(data.resumenFinanzas.gastos, moneda)}</span>
           <div className="finanzas-bar">
             <div className="finanzas-bar-fill finanzas-bar-negative" style={{ width: `${Math.min((data.resumenFinanzas.gastos / (data.resumenFinanzas.ingresos || 1)) * 100, 100)}%` }} />
           </div>
@@ -185,7 +187,7 @@ export default function ListaDashboard() {
         <div className="finanzas-card">
           <span className="finanzas-label">Balance del mes</span>
           <span className={`finanzas-value ${data.resumenFinanzas.balance >= 0 ? 'finanzas-value-positive' : 'finanzas-value-negative'}`}>
-            {data.resumenFinanzas.balance >= 0 ? '+' : ''}${data.resumenFinanzas.balance.toFixed(2)}
+            {data.resumenFinanzas.balance >= 0 ? '+' : '-'}{formatear(Math.abs(data.resumenFinanzas.balance), moneda)}
           </span>
           <div className="finanzas-bar">
             <div className={`finanzas-bar-fill ${data.resumenFinanzas.balance >= 0 ? 'finanzas-bar-positive' : 'finanzas-bar-negative'}`} style={{ width: `${Math.min(Math.abs(data.resumenFinanzas.balance) / (Math.max(data.resumenFinanzas.ingresos, data.resumenFinanzas.gastos) || 1) * 100, 100)}%` }} />

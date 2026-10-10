@@ -7,6 +7,7 @@ import { Transaccion } from '../finanzas/entities/transaccion.entity';
 import { RegistroTiempo } from '../tiempo/entities/registro-tiempo.entity';
 import { Viaje } from '../viajes/entities/viaje.entity';
 import { Tarea } from '../tareas/entities/tarea.entity';
+import { DivisasService } from '../divisas/divisas.service';
 
 @Injectable()
 export class DashboardService {
@@ -23,9 +24,10 @@ export class DashboardService {
         private readonly viajeRepository: Repository<Viaje>,
         @InjectRepository(Tarea)
         private readonly tareaRepository: Repository<Tarea>,
+        private readonly divisasService: DivisasService,
     ) {}
 
-    async getResumen(userId: number) {
+    async getResumen(userId: number, moneda?: string) {
         const proyectosActivos = await this.proyectoRepository.count({
             where: { creadorId: userId, estado: 'activo' },
         });
@@ -45,11 +47,16 @@ export class DashboardService {
             },
         });
 
+        const destino = moneda ? moneda.toUpperCase() : null;
+        if (destino) this.divisasService.validarMoneda(destino);
         let ingresos = 0;
         let gastos = 0;
         for (const t of transacciones) {
-            if (t.tipo === 'ingreso') ingresos += Number(t.monto);
-            else gastos += Number(t.monto);
+            const monto = destino
+                ? await this.divisasService.convertir(Number(t.monto), t.moneda || 'USD', destino)
+                : Number(t.monto);
+            if (t.tipo === 'ingreso') ingresos += monto;
+            else gastos += monto;
         }
 
         const tiempoMes = await this.tiempoRepository
@@ -80,12 +87,12 @@ export class DashboardService {
             take: 10,
         });
 
-        const actividadReciente = await this.obtenerActividadReciente(userId);
+        const actividadReciente = await this.obtenerActividadReciente(userId, destino);
 
         return {
             proyectosActivos,
             totalClientes,
-            resumenFinanzas: { ingresos, gastos, balance: ingresos - gastos },
+            resumenFinanzas: { ingresos, gastos, balance: ingresos - gastos, moneda: destino || 'mixta' },
             horasMes: Number(tiempoMes?.total || 0),
             viajesProximos,
             tareasPendientes,
@@ -93,7 +100,7 @@ export class DashboardService {
         };
     }
 
-    private async obtenerActividadReciente(userId: number) {
+    private async obtenerActividadReciente(userId: number, moneda: string | null) {
         const items: { tipo: string; descripcion: string; fecha: string; id: number }[] = [];
 
         const transacciones = await this.transaccionRepository.find({
@@ -102,9 +109,13 @@ export class DashboardService {
             take: 5,
         });
         for (const t of transacciones) {
+            const monto = moneda
+                ? await this.divisasService.convertir(Number(t.monto), t.moneda || 'USD', moneda)
+                : Number(t.monto);
+            const codigo = moneda || t.moneda || 'USD';
             items.push({
                 tipo: t.tipo === 'ingreso' ? 'ingreso' : 'gasto',
-                descripcion: `${t.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'} - ${t.categoria}: $${Number(t.monto).toFixed(2)}`,
+                descripcion: `${t.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'} - ${t.categoria}: ${codigo} ${monto.toFixed(2)}`,
                 fecha: t.createdAt.toISOString(),
                 id: t.id,
             });

@@ -222,6 +222,7 @@ export default function MiPerfil() {
       );
       const { data } = await api.patch('/perfiles/mi-perfil', body);
       setPerfil(data);
+      window.dispatchEvent(new Event('nomahud:perfil-actualizado'));
       setEditando(false);
       setFormTocado(false);
       setMsg({ text: 'Perfil actualizado correctamente', type: 'success' });

@@ -49,11 +49,11 @@ describe('FinanzasController', () => {
 
   it('getResumen: delega en service', async () => {
     const usuario = { id: 1 } as any;
-    service.getResumen.mockResolvedValue({ totalIngresos: 0, totalGastos: 0, balance: 0, ingresos: 0, gastos: 0 });
+    service.getResumen.mockResolvedValue({ totalIngresos: 0, totalGastos: 0, balance: 0, ingresos: 0, gastos: 0, moneda: 'mixta' });
 
-    const result = await controller.getResumen(usuario);
+    const result = await controller.getResumen(usuario, undefined);
 
-    expect(service.getResumen).toHaveBeenCalledWith(1);
+    expect(service.getResumen).toHaveBeenCalledWith(1, undefined);
     expect(result.balance).toBe(0);
   });
 

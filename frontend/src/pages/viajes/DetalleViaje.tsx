@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
 
 interface ItinerarioItem {
   id: number;
@@ -99,6 +100,7 @@ function IconPlus() {
 }
 
 export default function DetalleViaje() {
+  const { formatear } = useDivisa();
   const { id } = useParams();
   const navigate = useNavigate();
   const [viaje, setViaje] = useState<Viaje | null>(null);
@@ -271,7 +273,7 @@ export default function DetalleViaje() {
               <div className="viaje-detalle-hero-meta">
                 <span><IconCalendar /> {viaje.fechaInicio}{viaje.fechaFin ? ` → ${viaje.fechaFin}` : ' (sin fecha de fin)'}</span>
                 {viaje.presupuesto != null && (
-                  <span><IconDollar /> {Number(viaje.presupuesto).toLocaleString('es-MX', { style: 'currency', currency: viaje.moneda || 'MXN' })}</span>
+                  <span><IconDollar /> {formatear(Number(viaje.presupuesto), viaje.moneda)}</span>
                 )}
               </div>
             </div>
@@ -346,7 +348,7 @@ export default function DetalleViaje() {
                       {item.fecha && <span className="viaje-itinerario-item-meta"><IconCalendar /> {item.fecha}</span>}
                       {item.descripcion && <p className="viaje-itinerario-item-desc">{item.descripcion}</p>}
                       {item.costo != null && (
-                        <span className="viaje-itinerario-item-costo"><IconDollar /> {Number(item.costo).toLocaleString('es-MX', { style: 'currency', currency: viaje.moneda || 'MXN' })}</span>
+                        <span className="viaje-itinerario-item-costo"><IconDollar /> {formatear(Number(item.costo), viaje.moneda)}</span>
                       )}
                     </div>
                   </div>
@@ -398,12 +400,7 @@ export default function DetalleViaje() {
             <div className="field">
               <label>Moneda</label>
               <select name="moneda" value={form.moneda} onChange={(e) => setForm({ ...form, moneda: e.target.value })}>
-                <option value="MXN">MXN</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="COP">COP</option>
-                <option value="ARS">ARS</option>
-                <option value="BRL">BRL</option>
+                {MONEDAS.map((m) => (<option key={m} value={m}>{m}</option>))}
               </select>
             </div>
           </div>

@@ -169,6 +169,21 @@ describe('Flujo crítico (e2e)', () => {
 
     const miembros = await auth(request(app.getHttpServer()).get(`/proyectos/${proyectoId}/miembros`)).expect(200);
     expect(miembros.body.miembros.length).toBe(1);
+    const miembroId = miembros.body.miembros[0].usuarioId;
+
+    await auth(request(app.getHttpServer()).patch(`/proyectos/${proyectoId}/miembros/${miembroId}`))
+      .send({ rol: 'lector' })
+      .expect(200);
+    const trasCambio = await auth(request(app.getHttpServer()).get(`/proyectos/${proyectoId}/miembros`)).expect(200);
+    expect(trasCambio.body.miembros[0].rol).toBe('lector');
+
+    const authMiembro = (r: request.Test) => r.set('Authorization', `Bearer ${login2.body.token}`);
+    await authMiembro(request(app.getHttpServer()).post(`/proyectos/${proyectoId}/invitar`))
+      .send({ email: 'otro@test.com', rol: 'lector' })
+      .expect(404);
+    await authMiembro(request(app.getHttpServer()).patch(`/proyectos/${proyectoId}/miembros/${miembroId}`))
+      .send({ rol: 'editor' })
+      .expect(404);
   });
 
   it('invitado: se registra por link, queda limitado y luego sube a normal', async () => {

@@ -7,6 +7,7 @@ import { Transaccion } from '../../finanzas/entities/transaccion.entity';
 import { RegistroTiempo } from '../../tiempo/entities/registro-tiempo.entity';
 import { Viaje } from '../../viajes/entities/viaje.entity';
 import { Tarea } from '../../tareas/entities/tarea.entity';
+import { DivisasService } from '../../divisas/divisas.service';
 
 describe('DashboardService', () => {
   let service: DashboardService;
@@ -44,6 +45,10 @@ describe('DashboardService', () => {
         {
           provide: getRepositoryToken(Tarea),
           useValue: { find: jest.fn() },
+        },
+        {
+          provide: DivisasService,
+          useValue: { convertir: jest.fn(async (m: number) => m), validarMoneda: jest.fn() },
         },
       ],
     }).compile();
@@ -85,6 +90,7 @@ describe('DashboardService', () => {
       ingresos: 1000,
       gastos: 400,
       balance: 600,
+      moneda: 'mixta',
     });
     expect(result.horasMes).toBe(20);
     expect(result.viajesProximos).toEqual([]);

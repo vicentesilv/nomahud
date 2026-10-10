@@ -99,7 +99,7 @@ export class ProyectosService {
                 tipo: 'ingreso',
                 categoria: 'Desarrollo',
                 monto: Number(proyectoActualizado.ganancia),
-                moneda: 'USD',
+                moneda: proyectoActualizado.moneda || 'USD',
                 descripcion: `Ganancia del proyecto: ${proyectoActualizado.nombre}`,
                 fecha: new Date().toISOString().slice(0, 10),
                 proyectoId: proyectoActualizado.id,
@@ -228,6 +228,15 @@ export class ProyectosService {
                 rol: m.rol,
             })),
         };
+    }
+
+    async cambiarRolMiembro(proyectoId: number, propietarioId: number, miembroUsuarioId: number, rol: RolMiembro): Promise<void> {
+        const proyecto = await this.proyectoRepository.findOne({ where: { id: proyectoId, creadorId: propietarioId } });
+        if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+        const miembro = await this.miembroRepository.findOne({ where: { proyectoId, usuarioId: miembroUsuarioId } });
+        if (!miembro) throw new NotFoundException('Miembro no encontrado');
+        miembro.rol = rol;
+        await this.miembroRepository.save(miembro);
     }
 
     async expulsarMiembro(proyectoId: number, propietarioId: number, miembroUsuarioId: number): Promise<void> {

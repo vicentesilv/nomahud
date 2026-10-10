@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api, { extraerLista } from '../../services/api';
+import { useDivisa } from '../../contexts/DivisaContext';
 
 interface Transaccion {
   id: number;
@@ -55,6 +56,7 @@ function IconReceipt() {
 }
 
 export default function ListaFinanzas() {
+  const { moneda, formatear } = useDivisa();
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [resumen, setResumen] = useState({ totalIngresos: 0, totalGastos: 0, balance: 0 });
   const [loading, setLoading] = useState(true);
@@ -63,13 +65,13 @@ export default function ListaFinanzas() {
   useEffect(() => {
     Promise.all([
       api.get('/finanzas'),
-      api.get('/finanzas/resumen'),
+      api.get('/finanzas/resumen', { params: { moneda } }),
     ]).then(([tData, rData]) => {
       setTransacciones(extraerLista(tData.data));
       setResumen(rData.data);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, []);
+  }, [moneda]);
 
   if (loading) {
     return (
@@ -112,7 +114,7 @@ export default function ListaFinanzas() {
           <div className="finanzas-resumen-info">
             <span className="finanzas-resumen-label">Ingresos</span>
             <span className="finanzas-resumen-value finanzas-resumen-positive">
-              +{Number(resumen.totalIngresos).toLocaleString()} USD
+              +{formatear(resumen.totalIngresos, moneda)}
             </span>
           </div>
         </div>
@@ -123,7 +125,7 @@ export default function ListaFinanzas() {
           <div className="finanzas-resumen-info">
             <span className="finanzas-resumen-label">Gastos</span>
             <span className="finanzas-resumen-value finanzas-resumen-negative">
-              -{Number(resumen.totalGastos).toLocaleString()} USD
+              -{formatear(resumen.totalGastos, moneda)}
             </span>
           </div>
         </div>
@@ -134,7 +136,7 @@ export default function ListaFinanzas() {
           <div className="finanzas-resumen-info">
             <span className="finanzas-resumen-label">Balance</span>
             <span className={`finanzas-resumen-value ${resumen.balance >= 0 ? 'finanzas-resumen-positive' : 'finanzas-resumen-negative'}`}>
-              {resumen.balance >= 0 ? '+' : ''}{Number(resumen.balance).toLocaleString()} USD
+              {resumen.balance >= 0 ? '+' : ''}{formatear(Math.abs(resumen.balance), moneda)}
             </span>
           </div>
         </div>
@@ -186,7 +188,7 @@ export default function ListaFinanzas() {
               </div>
               <div className="finanzas-item-right">
                 <span className={`finanzas-item-monto ${t.tipo === 'ingreso' ? 'finanzas-monto-positivo' : 'finanzas-monto-negativo'}`}>
-                  {t.tipo === 'ingreso' ? '+' : '-'}{Number(t.monto).toLocaleString()} {t.moneda}
+                  {t.tipo === 'ingreso' ? '+' : '-'}{formatear(Number(t.monto), t.moneda)}
                 </span>
               </div>
             </div>

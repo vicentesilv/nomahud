@@ -4,6 +4,7 @@ import { ProyectosService } from './proyectos.service';
 import { CrearProyectoDto } from './dtos/crear-proyecto.dto';
 import { ActualizarProyectoDto } from './dtos/actualizar-proyecto.dto';
 import { InvitarMiembroDto } from './dtos/invitar-miembro.dto';
+import { CambiarRolMiembroDto } from './dtos/cambiar-rol-miembro.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { User } from '../common/decorators/user.decorator';
@@ -57,6 +58,17 @@ export class ProyectosController {
     ) {
         await this.proyectosService.expulsarMiembro(id, usuario.id, usuarioId);
         return { mensaje: 'Miembro eliminado correctamente' };
+    }
+
+    @Patch(':id/miembros/:usuarioId')
+    async cambiarRol(
+        @User() usuario: Usuario,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('usuarioId', ParseIntPipe) usuarioId: number,
+        @Body() dto: CambiarRolMiembroDto,
+    ) {
+        await this.proyectosService.cambiarRolMiembro(id, usuario.id, usuarioId, dto.rol);
+        return { mensaje: `Rol actualizado a ${dto.rol}` };
     }
 
 }

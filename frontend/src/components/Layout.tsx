@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { DivisaProvider } from '../contexts/DivisaContext';
 
 function IconMenu() {
   return (
@@ -227,7 +228,9 @@ export default function Layout() {
       </aside>
 
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Outlet />
+        <DivisaProvider>
+          <Outlet />
+        </DivisaProvider>
       </main>
     </div>
   );
