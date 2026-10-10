@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
 
 interface ClienteOption { id: number; nombre: string }
 interface ProyectoOption { id: number; nombre: string; clienteRel: { id: number; nombre: string } | null }
@@ -42,8 +42,8 @@ export default function NuevaTransaccion() {
       api.get('/clientes'),
       api.get('/proyectos'),
     ]).then(([cData, pData]) => {
-      setClientes(cData.data);
-      setProyectos(pData.data);
+      setClientes(extraerLista(cData.data));
+      setProyectos(extraerLista(pData.data));
     }).catch(() => {});
   }, []);
 

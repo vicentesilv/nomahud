@@ -8,8 +8,8 @@ import { ActualizarDocumentoDto } from './dtos/actualizar-documento.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { User } from '../common/decorators/user.decorator';
+import { PaginacionDto } from '../common/dtos/paginacion.dto';
 import * as path from 'path';
-import * as fs from 'fs';
 
 const MAX_DOC_SIZE = 10 * 1024 * 1024;
 const EXTENSIONES_PERMITIDAS = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.txt', '.csv', '.docx', '.xlsx', '.pptx']);
@@ -60,8 +60,9 @@ export class DocumentosController {
     async findAll(
         @User() usuario: Usuario,
         @Query('tipo', new ParseEnumPipe(['proyecto', 'viaje'], { optional: true })) tipo?: 'proyecto' | 'viaje',
+        @Query() pag?: PaginacionDto,
     ) {
-        return this.documentosService.findAll(usuario.id, tipo);
+        return this.documentosService.findAll(usuario.id, tipo, pag);
     }
 
     @Get(':id')
@@ -76,13 +77,12 @@ export class DocumentosController {
         @Res() res: Response,
     ) {
         const doc = await this.documentosService.findOne(id, usuario.id);
-        const ruta = this.documentosService.getRutaArchivo(doc.archivo);
-        if (!fs.existsSync(ruta)) {
+        const { stream, mimeType } = await this.documentosService.leerArchivo(doc).catch(() => {
             throw new NotFoundException('Archivo no encontrado en el servidor');
-        }
+        });
         res.setHeader('Content-Disposition', `inline; filename="${sanitizarNombreDescarga(doc.nombre)}"`);
-        res.setHeader('Content-Type', doc.mimeType || 'application/octet-stream');
-        res.sendFile(path.resolve(ruta));
+        res.setHeader('Content-Type', mimeType || doc.mimeType || 'application/octet-stream');
+        stream.pipe(res);
     }
 
     @Patch(':id')

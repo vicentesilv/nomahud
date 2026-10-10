@@ -49,6 +49,9 @@ export class Perfil {
     @Column({ type: 'varchar', length: 10, default: 'USD' })
     monedaPreferida: string;
 
+    @Column({ type: 'boolean', default: true })
+    notificacionesEmail: boolean;
+
     @CreateDateColumn({ type: 'datetime' })
     createdAt: Date;
 

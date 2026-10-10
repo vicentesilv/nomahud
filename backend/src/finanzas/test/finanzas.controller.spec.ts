@@ -40,11 +40,11 @@ describe('FinanzasController', () => {
 
   it('findAll: delega en service', async () => {
     const usuario = { id: 1 } as any;
-    service.findAll.mockResolvedValue([]);
+    service.findAll.mockResolvedValue({ datos: [], total: 0, pagina: 1, limite: 20 });
 
-    await controller.findAll(usuario);
+    await controller.findAll(usuario, {});
 
-    expect(service.findAll).toHaveBeenCalledWith(1);
+    expect(service.findAll).toHaveBeenCalledWith(1, {});
   });
 
   it('getResumen: delega en service', async () => {

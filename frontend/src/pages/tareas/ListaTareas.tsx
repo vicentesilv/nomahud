@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import Temporizador from '../../components/Temporizador';
 
 interface Tarea {
   id: number;
@@ -83,6 +84,14 @@ function IconClock() {
   );
 }
 
+function IconColumns() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="5" height="18" /><rect x="10" y="3" width="5" height="18" /><rect x="17" y="3" width="4" height="18" />
+    </svg>
+  );
+}
+
 export default function ListaTareas() {
   const [tasks, setTasks] = useState<Tarea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,13 +99,28 @@ export default function ListaTareas() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
   const [calYear, setCalYear] = useState(() => new Date().getFullYear());
-  const [vista, setVista] = useState<'tarjeta' | 'lista'>('tarjeta');
+  const [vista, setVista] = useState<'tarjeta' | 'lista' | 'tablero'>('tarjeta');
+  const [msg, setMsg] = useState('');
+  const [colArrastrada, setColArrastrada] = useState<string | null>(null);
 
   useEffect(() => {
     api.get('/tareas')
-      .then(({ data }) => { setTasks(data); setLoading(false); })
+      .then(({ data }) => { setTasks(Array.isArray(data) ? data : data.datos || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  const moverTarea = async (id: number, estado: Tarea['estado']) => {
+    const anterior = tasks;
+    setTasks((ts) => ts.map((t) => (t.id === id ? { ...t, estado } : t)));
+    setSelectedTask((t) => (t && t.id === id ? { ...t, estado } : t));
+    try {
+      await api.patch(`/tareas/${id}`, { estado });
+      setMsg('');
+    } catch {
+      setTasks(anterior);
+      setMsg('No se pudo mover la tarea');
+    }
+  };
 
   const taskDates = new Set(tasks.filter(t => t.fechaVencimiento).map(t => t.fechaVencimiento!.slice(0, 10)));
 
@@ -168,6 +192,13 @@ export default function ListaTareas() {
             >
               <IconList />
             </button>
+            <button
+              className={`view-toggle-btn ${vista === 'tablero' ? 'active' : ''}`}
+              onClick={() => setVista('tablero')}
+              title="Tablero Kanban (arrastrar para cambiar estado)"
+            >
+              <IconColumns />
+            </button>
           </div>
         </div>
       </div>
@@ -185,11 +216,70 @@ export default function ListaTareas() {
               </button>
             </div>
           )}
+          {msg && (
+            <div className="tareas-filter-bar" style={{ borderColor: 'var(--error)', color: 'var(--error)' }}>
+              <span>{msg}</span>
+              <button onClick={() => setMsg('')} className="btn-secondary" style={{ width: 'auto', fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}>
+                Cerrar
+              </button>
+            </div>
+          )}
           <div className="tareas-list-wrapper">
-            {sortedGroups.length === 0 ? (
+            {sortedGroups.length === 0 && vista !== 'tablero' ? (
               <div className="tareas-empty">
                 <IconCheckSquare />
                 <p>{selectedDate ? 'No hay tareas para esta fecha.' : 'No hay tareas.'}</p>
+              </div>
+            ) : vista === 'tablero' ? (
+              <div className="kanban-board" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(220px, 1fr))', gap: '0.75rem', alignItems: 'start' }}>
+                {(['pendiente', 'en_progreso', 'completada', 'cancelada'] as const).map((estado) => {
+                  const delEstado = tasks.filter((t) => t.estado === estado);
+                  return (
+                    <div
+                      key={estado}
+                      className="kanban-col"
+                      onDragOver={(e) => { e.preventDefault(); setColArrastrada(estado); }}
+                      onDragLeave={() => setColArrastrada((c) => (c === estado ? null : c))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setColArrastrada(null);
+                        const id = Number(e.dataTransfer.getData('text/tarea-id'));
+                        if (id) moverTarea(id, estado);
+                      }}
+                      style={{
+                        background: 'var(--surface, #1a1a1a)', borderRadius: '10px', padding: '0.6rem',
+                        border: colArrastrada === estado ? '2px dashed var(--accent)' : '1px solid var(--border)',
+                        minHeight: '200px',
+                      }}
+                    >
+                      <div className="tareas-group-header" style={{ marginBottom: '0.5rem' }}>
+                        <span className={`badge ${ESTADO_BADGE[estado]}`}>{ESTADO_LABEL[estado]}</span>
+                        <span className="tareas-group-count">{delEstado.length}</span>
+                      </div>
+                      {delEstado.map((t) => (
+                        <div
+                          key={t.id}
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData('text/tarea-id', String(t.id))}
+                          onClick={() => setSelectedTask(t)}
+                          className="tarea-card"
+                          style={{ borderLeft: `4px solid ${PRIORIDAD_COLOR[t.prioridad]}`, marginBottom: '0.5rem', cursor: 'grab' }}
+                        >
+                          <div className="tarea-card-titulo" style={{ fontWeight: 600 }}>{t.titulo}</div>
+                          <div className="tarea-card-meta">
+                            <span><IconFolder /> {t.proyecto.nombre}</span>
+                            {t.fechaVencimiento && (
+                              <span><IconClock /> {new Date(t.fechaVencimiento).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {delEstado.length === 0 && (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>Soltá tareas aquí</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : vista === 'tarjeta' ? (
               <div className="tareas-grid">
@@ -340,6 +430,11 @@ export default function ListaTareas() {
                     <span>{selectedTask.asignadoA.nombre}</span>
                   </div>
                 )}
+                <Temporizador
+                  tareaId={selectedTask.id}
+                  proyectoId={selectedTask.proyectoId}
+                  titulo={selectedTask.titulo}
+                />
               </div>
               {selectedTask.descripcion && (
                 <div className="tarea-detalle-desc">

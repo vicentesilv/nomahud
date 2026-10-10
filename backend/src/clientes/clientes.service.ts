@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Cliente } from './entities/cliente.entity';
 import { CrearClienteDto } from './dtos/crear-cliente.dto';
 import { ActualizarClienteDto } from './dtos/actualizar-cliente.dto';
+import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 
 @Injectable()
 export class ClientesService {
@@ -17,11 +18,15 @@ export class ClientesService {
         return this.clienteRepository.save(cliente);
     }
 
-    async findAll(creadorId: number): Promise<Cliente[]> {
-        return this.clienteRepository.find({
+    async findAll(creadorId: number, pag?: PaginacionDto): Promise<Pagina<Cliente>> {
+        const { skip, take } = skipTake(pag ?? {});
+        const [datos, total] = await this.clienteRepository.findAndCount({
             where: { creadorId },
             order: { updatedAt: 'DESC' },
+            skip,
+            take,
         });
+        return paginar(datos, total, pag ?? {});
     }
 
     async findOne(id: number, creadorId: number): Promise<Cliente> {

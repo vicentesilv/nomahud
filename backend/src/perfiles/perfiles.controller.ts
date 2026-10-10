@@ -1,6 +1,6 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Patch, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import type { Response } from 'express';
 import { PerfilesService } from './perfiles.service';
 import { ActualizarPerfilDto } from './dtos/actualizar-perfil.dto';
@@ -8,7 +8,14 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { User } from '../common/decorators/user.decorator';
 import * as path from 'path';
-import * as fs from 'fs';
+
+function mimePorExtension(filename: string): string {
+    const ext = path.extname(filename).toLowerCase();
+    if (ext === '.png') return 'image/png';
+    if (ext === '.webp') return 'image/webp';
+    if (ext === '.gif') return 'image/gif';
+    return 'image/jpeg';
+}
 
 @Controller('perfiles')
 export class PerfilesController {
@@ -29,14 +36,7 @@ export class PerfilesController {
     @Post('mi-perfil/avatar')
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(FileInterceptor('avatar', {
-        storage: diskStorage({
-            destination: path.join(process.cwd(), 'uploads', 'avatars'),
-            filename: (_req, file, cb) => {
-                const ext = path.extname(file.originalname) || '.jpg';
-                const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-                cb(null, name);
-            },
-        }),
+        storage: memoryStorage(),
         limits: { fileSize: 5 * 1024 * 1024 },
         fileFilter: (_req, file, cb) => {
             if (!file.mimetype.startsWith('image/')) {
@@ -46,12 +46,11 @@ export class PerfilesController {
             cb(null, true);
         },
     }))
-    async uploadAvatar(@User() usuario: Usuario, @UploadedFile() file: any) {
+    async uploadAvatar(@User() usuario: Usuario, @UploadedFile() file: Express.Multer.File) {
         if (!file) {
             throw new BadRequestException('Archivo es requerido');
         }
-        const avatarUrl = `/api/perfiles/avatar/${file.filename}`;
-        return this.perfilesService.updateAvatar(usuario.id, avatarUrl);
+        return this.perfilesService.updateAvatar(usuario.id, file.buffer, path.extname(file.originalname) || '.jpg', file.mimetype);
     }
 
     @Get('avatar/:filename')
@@ -61,12 +60,13 @@ export class PerfilesController {
             res.status(400).json({ mensaje: 'Nombre de archivo inválido' });
             return;
         }
-        const ruta = path.join(process.cwd(), 'uploads', 'avatars', base);
-        if (!fs.existsSync(ruta)) {
-            res.status(404).json({ mensaje: 'Avatar no encontrado' });
-            return;
+        try {
+            const { stream, mimeType } = await this.perfilesService.leerAvatar(base);
+            res.setHeader('Content-Type', mimeType || mimePorExtension(base));
+            stream.pipe(res);
+        } catch {
+            throw new NotFoundException('Avatar no encontrado');
         }
-        res.sendFile(path.resolve(ruta));
     }
 
     @Get(':id')

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
 
 interface Registro {
   id: number;
@@ -62,7 +62,7 @@ export default function ListaTiempo() {
       api.get('/tiempo'),
       api.get('/tiempo/resumen'),
     ]).then(([rData, sData]) => {
-      setRegistros(rData.data);
+      setRegistros(extraerLista(rData.data));
       setResumen(sData.data);
       setLoading(false);
     }).catch(() => setLoading(false));

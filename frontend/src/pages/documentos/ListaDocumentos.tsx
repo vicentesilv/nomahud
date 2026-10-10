@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import api, { backendUrl } from '../../services/api';
+import api, { backendUrl, extraerLista } from '../../services/api';
 import VisorDocumentos from './VisorDocumentos';
 import mammoth from 'mammoth/mammoth.browser.js';
 import * as XLSX from 'xlsx';
@@ -82,8 +82,8 @@ export default function ListaDocumentos() {
   useEffect(() => {
     setEntidadesLoading(true);
     Promise.all([
-      api.get('/proyectos').then(({ data }) => setProyectos(data)).catch(() => {}),
-      api.get('/viajes').then(({ data }) => setViajes(data)).catch(() => {}),
+      api.get('/proyectos').then(({ data }) => setProyectos(extraerLista(data))).catch(() => {}),
+      api.get('/viajes').then(({ data }) => setViajes(extraerLista(data))).catch(() => {}),
     ]).then(() => setEntidadesLoading(false));
   }, []);
 
@@ -91,7 +91,7 @@ export default function ListaDocumentos() {
     setLoading(true);
     const params = filtro ? `?tipo=${filtro}` : '';
     api.get(`/documentos${params}`).then(({ data }) => {
-      setDocs(data);
+      setDocs(extraerLista(data));
       setLoading(false);
     }).catch(() => setLoading(false));
   };

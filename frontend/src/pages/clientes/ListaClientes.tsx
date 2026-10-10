@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
 
 interface Cliente {
   id: number;
@@ -74,7 +74,7 @@ export default function ListaClientes() {
 
   useEffect(() => {
     api.get('/clientes').then(({ data }) => {
-      setClientes(data);
+      setClientes(extraerLista(data));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);

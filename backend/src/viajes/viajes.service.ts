@@ -5,6 +5,7 @@ import { Viaje } from './entities/viaje.entity';
 import { ItinerarioItem } from './entities/itinerario-item.entity';
 import { CrearViajeDto } from './dtos/crear-viaje.dto';
 import { ActualizarViajeDto } from './dtos/actualizar-viaje.dto';
+import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 import { FinanzasService } from '../finanzas/finanzas.service';
 
 @Injectable()
@@ -65,11 +66,15 @@ export class ViajesService {
         return this.viajeRepository.save(viaje);
     }
 
-    async findAll(creadorId: number): Promise<Viaje[]> {
-        return this.viajeRepository.find({
+    async findAll(creadorId: number, pag?: PaginacionDto): Promise<Pagina<Viaje>> {
+        const { skip, take } = skipTake(pag ?? {});
+        const [datos, total] = await this.viajeRepository.findAndCount({
             where: { creadorId },
             order: { createdAt: 'DESC' },
+            skip,
+            take,
         });
+        return paginar(datos, total, pag ?? {});
     }
 
     async findOne(id: number, creadorId: number): Promise<Viaje> {

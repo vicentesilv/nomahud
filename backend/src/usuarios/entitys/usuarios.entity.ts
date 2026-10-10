@@ -2,6 +2,7 @@ import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Perfil } from "../../perfiles/entities/perfil.entity";
 
 export type EstadoCuenta = 'pendiente' | 'activa' | 'bloqueada';
+export type RolUsuario = 'normal' | 'invitado';
 
 @Entity()
 export class Usuario {
@@ -35,6 +36,13 @@ export class Usuario {
         default: 'pendiente',
     })
     estadoCuenta: EstadoCuenta;
+
+    @Column({
+        type: 'enum',
+        enum: ['normal', 'invitado'],
+        default: 'normal',
+    })
+    rol: RolUsuario;
 
     @OneToOne(() => Perfil, (perfil) => perfil.usuario)
     perfil?: Perfil;

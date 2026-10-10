@@ -6,6 +6,8 @@ import { CrearTareaDto } from './dtos/crear-tarea.dto';
 import { ActualizarTareaDto } from './dtos/actualizar-tarea.dto';
 import { TiempoService } from '../tiempo/tiempo.service';
 import { Proyecto } from '../proyectos/entities/proyecto.entity';
+import { ProyectoMiembro } from '../proyectos/entities/proyecto-miembro.entity';
+import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 
 @Injectable()
 export class TareasService {
@@ -16,15 +18,32 @@ export class TareasService {
         private readonly tiempoService: TiempoService,
     ) {}
 
-    private async verificarProyectoPropio(proyectoId: number, creadorId: number): Promise<Proyecto> {
-        const proyecto = await this.tareaRepository.manager.findOne(Proyecto, {
+    /** Rol del usuario en el proyecto: propietario, editor, lector o null. */
+    private async rolEnProyecto(proyectoId: number, usuarioId: number): Promise<'propietario' | 'editor' | 'lector' | null> {
+        const manager = this.tareaRepository.manager;
+        const proyecto = await manager.findOne(Proyecto, {
             where: { id: proyectoId },
             select: ['id', 'creadorId'],
         });
-        if (!proyecto || proyecto.creadorId !== creadorId) {
+        if (!proyecto) return null;
+        if (proyecto.creadorId === usuarioId) return 'propietario';
+        const miembro = await manager.findOne(ProyectoMiembro, { where: { proyectoId, usuarioId } });
+        return miembro ? miembro.rol : null;
+    }
+
+    private async verificarProyectoPropio(proyectoId: number, creadorId: number): Promise<Proyecto> {
+        const rol = await this.rolEnProyecto(proyectoId, creadorId);
+        if (!rol || (rol !== 'propietario' && rol !== 'editor')) {
             throw new NotFoundException('Proyecto no encontrado');
         }
-        return proyecto;
+        return { id: proyectoId } as Proyecto;
+    }
+
+    private async verificarLecturaProyecto(proyectoId: number, usuarioId: number): Promise<void> {
+        const rol = await this.rolEnProyecto(proyectoId, usuarioId);
+        if (!rol) {
+            throw new NotFoundException('Proyecto no encontrado');
+        }
     }
 
     async create(creadorId: number, dto: CrearTareaDto): Promise<Tarea> {
@@ -34,7 +53,7 @@ export class TareasService {
     }
 
     async findAllByProyecto(proyectoId: number, creadorId: number): Promise<Tarea[]> {
-        await this.verificarProyectoPropio(proyectoId, creadorId);
+        await this.verificarLecturaProyecto(proyectoId, creadorId);
         return this.tareaRepository.find({
             where: { proyectoId },
             order: { createdAt: 'ASC' },
@@ -42,17 +61,21 @@ export class TareasService {
         });
     }
 
-    async findAll(userId: number): Promise<Tarea[]> {
-        return this.tareaRepository.find({
-            where: { proyecto: { creadorId: userId } },
+    async findAll(userId: number, pag?: PaginacionDto): Promise<Pagina<Tarea>> {
+        const { skip, take } = skipTake(pag ?? {});
+        const [datos, total] = await this.tareaRepository.findAndCount({
+            where: [{ proyecto: { creadorId: userId } }, { proyecto: { miembros: { usuarioId: userId } } }],
             relations: ['proyecto', 'asignadoA'],
             order: { createdAt: 'ASC' },
+            skip,
+            take,
         });
+        return paginar(datos, total, pag ?? {});
     }
 
     async findOne(id: number, creadorId?: number): Promise<Tarea> {
         const tarea = await this.tareaRepository.findOne({
-            where: creadorId != null ? { id, proyecto: { creadorId } } : { id },
+            where: { id },
             relations: ['asignadoA', 'proyecto'],
         });
 
@@ -60,11 +83,22 @@ export class TareasService {
             throw new NotFoundException('Tarea no encontrada');
         }
 
+        if (creadorId != null) {
+            const rol = await this.rolEnProyecto(tarea.proyectoId, creadorId);
+            if (!rol) {
+                throw new NotFoundException('Tarea no encontrada');
+            }
+        }
+
         return tarea;
     }
 
     async update(id: number, creadorId: number, dto: ActualizarTareaDto): Promise<Tarea> {
-        const tarea = await this.findOne(id, creadorId);
+        const tarea = await this.findOne(id);
+        const rol = await this.rolEnProyecto(tarea.proyectoId, creadorId);
+        if (!rol || (rol !== 'propietario' && rol !== 'editor')) {
+            throw new NotFoundException('Tarea no encontrada');
+        }
         if (dto.proyectoId != null && dto.proyectoId !== tarea.proyectoId) {
             await this.verificarProyectoPropio(dto.proyectoId, creadorId);
         }
@@ -104,7 +138,11 @@ export class TareasService {
     }
 
     async remove(id: number, creadorId: number): Promise<void> {
-        const tarea = await this.findOne(id, creadorId);
+        const tarea = await this.findOne(id);
+        const rol = await this.rolEnProyecto(tarea.proyectoId, creadorId);
+        if (!rol || (rol !== 'propietario' && rol !== 'editor')) {
+            throw new NotFoundException('Tarea no encontrada');
+        }
         await this.tareaRepository.remove(tarea);
     }
 }

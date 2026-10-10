@@ -4,7 +4,9 @@ import { Repository } from 'typeorm';
 import { Transaccion } from './entities/transaccion.entity';
 import { CrearTransaccionDto } from './dtos/crear-transaccion.dto';
 import { ActualizarTransaccionDto } from './dtos/actualizar-transaccion.dto';
+import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 import { Proyecto } from '../proyectos/entities/proyecto.entity';
+import { ProyectoMiembro } from '../proyectos/entities/proyecto-miembro.entity';
 import { Cliente } from '../clientes/entities/cliente.entity';
 
 @Injectable()
@@ -21,8 +23,14 @@ export class FinanzasService {
     ): Promise<void> {
         const manager = this.transaccionRepository.manager;
         if (proyectoId != null) {
-            const proyecto = await manager.findOne(Proyecto, { where: { id: proyectoId, creadorId }, select: ['id'] });
+            const proyecto = await manager.findOne(Proyecto, { where: { id: proyectoId }, select: ['id', 'creadorId'] });
             if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+            if (proyecto.creadorId !== creadorId) {
+                const miembro = await manager.findOne(ProyectoMiembro, { where: { proyectoId, usuarioId: creadorId } });
+                if (!miembro || miembro.rol !== 'editor') {
+                    throw new NotFoundException('Proyecto no encontrado');
+                }
+            }
         }
         if (clienteId != null) {
             const cliente = await manager.findOne(Cliente, { where: { id: clienteId, creadorId }, select: ['id'] });
@@ -36,12 +44,16 @@ export class FinanzasService {
         return this.transaccionRepository.save(transaccion);
     }
 
-    async findAll(creadorId: number): Promise<Transaccion[]> {
-        return this.transaccionRepository.find({
+    async findAll(creadorId: number, pag?: PaginacionDto): Promise<Pagina<Transaccion>> {
+        const { skip, take } = skipTake(pag ?? {});
+        const [datos, total] = await this.transaccionRepository.findAndCount({
             where: { creadorId },
             order: { fecha: 'DESC', createdAt: 'DESC' },
             relations: ['proyecto', 'cliente'],
+            skip,
+            take,
         });
+        return paginar(datos, total, pag ?? {});
     }
 
     async findOne(id: number, creadorId: number): Promise<Transaccion> {

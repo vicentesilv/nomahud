@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
 
 interface Viaje {
   id: number;
@@ -68,7 +68,7 @@ export default function ListaViajes() {
 
   useEffect(() => {
     api.get('/viajes').then(({ data }) => {
-      setViajes(data);
+      setViajes(extraerLista(data));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);

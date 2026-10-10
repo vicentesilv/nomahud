@@ -116,6 +116,7 @@ export default function Layout() {
     .slice(0, 2) || '?';
 
   const closeSidebar = () => setSidebarOpen(false);
+  const esInvitado = usuario?.rol === 'invitado';
 
   return (
     <div className="layout">
@@ -166,9 +167,15 @@ export default function Layout() {
             <IconFolder />
             <span>Proyectos</span>
           </NavLink>
+          {!esInvitado && (
+          <>
           <NavLink to="/tareas" title="Tareas" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeSidebar}>
             <IconCheckSquare />
             <span>Tareas</span>
+          </NavLink>
+          <NavLink to="/calendario" title="Calendario" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeSidebar}>
+            <IconClock />
+            <span>Calendario</span>
           </NavLink>
           <NavLink to="/clientes" title="Clientes" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeSidebar}>
             <IconUsers />
@@ -196,6 +203,8 @@ export default function Layout() {
             <IconFile />
             <span>Documentos</span>
           </NavLink>
+          </>
+          )}
 
         </nav>
 

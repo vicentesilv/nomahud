@@ -9,6 +9,7 @@ describe('ClientesService', () => {
   let repo: jest.Mocked<{
     create: jest.Mock;
     find: jest.Mock;
+    findAndCount: jest.Mock;
     findOne: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
@@ -23,6 +24,7 @@ describe('ClientesService', () => {
           useValue: {
             create: jest.fn(),
             find: jest.fn(),
+            findAndCount: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
@@ -48,15 +50,17 @@ describe('ClientesService', () => {
 
   it('findAll: retorna clientes del usuario', async () => {
     const clientes = [{ id: 1 }] as Cliente[];
-    repo.find.mockResolvedValue(clientes);
+    repo.findAndCount.mockResolvedValue([clientes, 1]);
 
     const result = await service.findAll(1);
 
-    expect(repo.find).toHaveBeenCalledWith({
+    expect(repo.findAndCount).toHaveBeenCalledWith({
       where: { creadorId: 1 },
       order: { updatedAt: 'DESC' },
+      skip: 0,
+      take: 20,
     });
-    expect(result).toBe(clientes);
+    expect(result).toEqual({ datos: clientes, total: 1, pagina: 1, limite: 20 });
   });
 
   it('findOne: retorna cliente si existe', async () => {

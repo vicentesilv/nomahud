@@ -11,6 +11,7 @@ describe('TareasService', () => {
   let repo: jest.Mocked<{
     create: jest.Mock;
     find: jest.Mock;
+    findAndCount: jest.Mock;
     findOne: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
@@ -27,6 +28,7 @@ describe('TareasService', () => {
           useValue: {
             create: jest.fn(),
             find: jest.fn(),
+            findAndCount: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
@@ -82,21 +84,24 @@ describe('TareasService', () => {
 
   it('findAll: retorna tareas del usuario', async () => {
     const tareas = [{ id: 1 }] as Tarea[];
-    repo.find.mockResolvedValue(tareas);
+    repo.findAndCount.mockResolvedValue([tareas, 1]);
 
     const result = await service.findAll(1);
 
-    expect(repo.find).toHaveBeenCalledWith({
-      where: { proyecto: { creadorId: 1 } },
+    expect(repo.findAndCount).toHaveBeenCalledWith({
+      where: [{ proyecto: { creadorId: 1 } }, { proyecto: { miembros: { usuarioId: 1 } } }],
       relations: ['proyecto', 'asignadoA'],
       order: { createdAt: 'ASC' },
+      skip: 0,
+      take: 20,
     });
-    expect(result).toBe(tareas);
+    expect(result).toEqual({ datos: tareas, total: 1, pagina: 1, limite: 20 });
   });
 
   it('findOne: retorna tarea si existe', async () => {
-    const tarea = { id: 1 } as Tarea;
+    const tarea = { id: 1, proyectoId: 1 } as Tarea;
     repo.findOne.mockResolvedValue(tarea);
+    repo.manager.findOne.mockResolvedValue({ id: 1, creadorId: 7 } as Proyecto);
 
     const result = await service.findOne(1, 7);
 
@@ -110,7 +115,7 @@ describe('TareasService', () => {
   });
 
   it('update: registra tiempo si tarea pasa a completada', async () => {
-    const proyecto = { id: 1, creadorId: 1 } as Proyecto;
+    const proyecto = { id: 1, creadorId: 7 } as Proyecto;
     const tarea = {
       id: 1,
       titulo: 'Tarea 1',
@@ -130,7 +135,7 @@ describe('TareasService', () => {
       where: { id: 1 },
       select: ['id', 'creadorId'],
     });
-    expect(tiempoService.create).toHaveBeenCalledWith(1, {
+    expect(tiempoService.create).toHaveBeenCalledWith(7, {
       proyectoId: 1,
       tareaId: 1,
       horas: 5,
@@ -143,6 +148,7 @@ describe('TareasService', () => {
     const tarea = { id: 1, estado: 'pendiente', proyectoId: 1 } as Tarea;
     repo.findOne.mockResolvedValue(tarea);
     repo.save.mockResolvedValue({ ...tarea, estado: 'en_progreso' } as Tarea);
+    repo.manager.findOne.mockResolvedValue({ id: 1, creadorId: 7 } as Proyecto);
 
     await service.update(1, 7, { estado: 'en_progreso' } as any);
 
@@ -150,11 +156,27 @@ describe('TareasService', () => {
   });
 
   it('remove: elimina tarea existente', async () => {
-    const tarea = { id: 1 } as Tarea;
+    const tarea = { id: 1, proyectoId: 1 } as Tarea;
     repo.findOne.mockResolvedValue(tarea);
+    repo.manager.findOne.mockResolvedValue({ id: 1, creadorId: 7 } as Proyecto);
 
     await service.remove(1, 7);
 
     expect(repo.remove).toHaveBeenCalledWith(tarea);
+  });
+
+  it('lector: puede leer pero no escribir', async () => {
+    const tarea = { id: 1, proyectoId: 1 } as Tarea;
+    repo.findOne.mockResolvedValue(tarea);
+    repo.manager.findOne.mockImplementation(async (entidad: unknown) => {
+      if (entidad === Proyecto) return { id: 1, creadorId: 99 } as Proyecto;
+      return { proyectoId: 1, usuarioId: 7, rol: 'lector' };
+    });
+
+    const leida = await service.findOne(1, 7);
+    expect(leida).toBe(tarea);
+    await expect(service.update(1, 7, { titulo: 'X' } as any)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.remove(1, 7)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.create(7, { titulo: 'Y', proyectoId: 1 } as any)).rejects.toBeInstanceOf(NotFoundException);
   });
 });

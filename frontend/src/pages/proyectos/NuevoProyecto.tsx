@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
 
 interface ClienteOption {
   id: number;
@@ -63,7 +63,7 @@ export default function NuevoProyecto() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/clientes').then(({ data }) => setClientes(data)).catch(() => {});
+    api.get('/clientes').then(({ data }) => setClientes(extraerLista(data))).catch(() => {});
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

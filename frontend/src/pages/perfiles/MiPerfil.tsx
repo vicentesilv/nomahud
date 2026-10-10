@@ -15,6 +15,7 @@ interface Perfil {
   paisActual: string;
   ciudadActual: string;
   monedaPreferida: string;
+  notificacionesEmail: boolean;
 }
 
 const ESTADOS_LABORALES: Record<string, string> = {
@@ -133,7 +134,8 @@ function IconAlert() {
 }
 
 export default function MiPerfil() {
-  const { usuario } = useAuth();
+  const { usuario, refreshUsuario } = useAuth();
+  const [completando, setCompletando] = useState(false);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -141,7 +143,7 @@ export default function MiPerfil() {
     bio: '', sitioWeb: '', skills: '', idiomas: '',
     zonaHoraria: '', estadoLaboral: 'disponible',
     paisActual: '', ciudadActual: '', monedaPreferida: 'USD',
-    avatarUrl: '',
+    avatarUrl: '', notificacionesEmail: true,
   });
   const [msg, setMsg] = useState({ text: '', type: '' as '' | 'success' | 'error' });
   const [skillInput, setSkillInput] = useState('');
@@ -185,6 +187,7 @@ export default function MiPerfil() {
         paisActual: data.paisActual || '',
         ciudadActual: data.ciudadActual || '',
         monedaPreferida: data.monedaPreferida || 'USD',
+        notificacionesEmail: data.notificacionesEmail !== false,
       };
       setForm(vals);
       setAvatarPreview(data.avatarUrl || '');
@@ -238,6 +241,21 @@ export default function MiPerfil() {
     setMsg({ text: '', type: '' });
     setErrores({});
     setFormTocado(false);
+  };
+
+  const completarRegistro = async () => {
+    if (!confirm('¿Completar tu registro? Tu cuenta pasará a normal con acceso a todas las funciones.')) return;
+    setCompletando(true);
+    try {
+      await api.post('/auth/completar-registro');
+      await refreshUsuario();
+      setMsg({ text: '¡Registro completado! Ya tenés acceso total.', type: 'success' });
+    } catch (err: any) {
+      const m = err.response?.data?.message;
+      setMsg({ text: typeof m === 'string' ? m : 'No se pudo completar el registro', type: 'error' });
+    } finally {
+      setCompletando(false);
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -392,6 +410,19 @@ export default function MiPerfil() {
               <div className="perfil-hero-info">
                 <h2 className="perfil-hero-name">{usuario?.nombre}</h2>
                 <p className="perfil-hero-email">{usuario?.correo}</p>
+                {usuario?.rol === 'invitado' && (
+                  <span className="badge badge-warning">Cuenta de invitado: solo proyectos compartidos</span>
+                )}
+                {usuario?.rol === 'invitado' && (
+                  <button
+                    onClick={completarRegistro}
+                    disabled={completando}
+                    className="btn-primary"
+                    style={{ width: 'auto', marginTop: '0.5rem', fontSize: '0.85rem' }}
+                  >
+                    {completando ? 'Completando...' : 'Completar registro y desbloquear todo'}
+                  </button>
+                )}
                 <span className={`badge ${perfil.estadoLaboral === 'disponible' ? 'badge-success' : perfil.estadoLaboral === 'ocupado' ? 'badge-warning' : 'badge-error'}`}>
                   <span className="badge-dot" />
                   {ESTADOS_LABORALES[perfil.estadoLaboral] || perfil.estadoLaboral}
@@ -568,6 +599,20 @@ export default function MiPerfil() {
                 placeholder="https://tusitio.com"
               />
               {errores.sitioWeb && <span className="field-error">{errores.sitioWeb}</span>}
+            </div>
+
+            <div className="field field-check">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={form.notificacionesEmail}
+                  onChange={(e) => {
+                    setForm({ ...form, notificacionesEmail: e.target.checked });
+                    setFormTocado(true);
+                  }}
+                />
+                Recibir notificaciones por email (vencimientos, resumen semanal, presupuestos)
+              </label>
             </div>
           </div>
 

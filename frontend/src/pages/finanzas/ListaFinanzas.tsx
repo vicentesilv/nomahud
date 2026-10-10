@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
 
 interface Transaccion {
   id: number;
@@ -65,7 +65,7 @@ export default function ListaFinanzas() {
       api.get('/finanzas'),
       api.get('/finanzas/resumen'),
     ]).then(([tData, rData]) => {
-      setTransacciones(tData.data);
+      setTransacciones(extraerLista(tData.data));
       setResumen(rData.data);
       setLoading(false);
     }).catch(() => setLoading(false));

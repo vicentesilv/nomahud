@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
 
 interface ProyectoOption { id: number; nombre: string }
 interface TareaOption { id: number; titulo: string }
@@ -27,7 +27,7 @@ export default function NuevoRegistroTiempo() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/proyectos').then(({ data }) => setProyectos(data)).catch(() => {});
+    api.get('/proyectos').then(({ data }) => setProyectos(extraerLista(data))).catch(() => {});
   }, []);
 
   const handleProyectoChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {

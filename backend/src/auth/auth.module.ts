@@ -9,6 +9,9 @@ import { UsuariosModule } from '../usuarios/usuarios.module';
 import { JwtStrategy } from './jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthToken } from './entitys/auth-token.entity';
+import { RefreshToken } from './entitys/refresh-token.entity';
+import { ProyectoInvitacion } from '../proyectos/entities/proyecto-invitacion.entity';
+import { ProyectoMiembro } from '../proyectos/entities/proyecto-miembro.entity';
 import { MailModule } from '../mail/mail.module';
 import { PerfilesModule } from '../perfiles/perfiles.module';
 import { AuthTokensCleanupJob } from '../common/jobs/auth-tokens-cleanup.job';
@@ -29,7 +32,7 @@ import { AuthTokensCleanupJob } from '../common/jobs/auth-tokens-cleanup.job';
     UsuariosModule,
     MailModule,
     PerfilesModule,
-    TypeOrmModule.forFeature([AuthToken]),
+    TypeOrmModule.forFeature([AuthToken, RefreshToken, ProyectoInvitacion, ProyectoMiembro]),
   ],
   providers: [AuthService, JwtAuthGuard, JwtStrategy, AuthTokensCleanupJob],
   controllers: [AuthController],

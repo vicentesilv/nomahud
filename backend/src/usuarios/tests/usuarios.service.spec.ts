@@ -50,6 +50,7 @@ describe('UsuariosService', () => {
       emailVerificado: false,
       emailVerificadoAt: null,
       estadoCuenta: 'pendiente',
+      rol: 'normal',
     };
 
     repo.create.mockReturnValue(usuarioCreado);
@@ -68,6 +69,7 @@ describe('UsuariosService', () => {
       emailVerificado: false,
       emailVerificadoAt: null,
       estadoCuenta: 'pendiente',
+      rol: 'normal',
     });
     expect((result as any).contrasena).toBeUndefined();
   });
@@ -123,6 +125,7 @@ describe('UsuariosService', () => {
       emailVerificado: false,
       emailVerificadoAt: null,
       estadoCuenta: 'pendiente',
+      rol: 'normal',
     };
 
     const dto: UpdateUsuarioDto = {
@@ -158,6 +161,7 @@ describe('UsuariosService', () => {
       emailVerificado: false,
       emailVerificadoAt: null,
       estadoCuenta: 'pendiente',
+      rol: 'normal',
     });
     expect((result as any).contrasena).toBeUndefined();
   });
@@ -181,6 +185,7 @@ describe('UsuariosService', () => {
       emailVerificado: false,
       emailVerificadoAt: null,
       estadoCuenta: 'pendiente',
+      rol: 'normal',
     };
 
     repo.findOne.mockResolvedValue(usuarioExistente);
@@ -205,6 +210,7 @@ describe('UsuariosService', () => {
       emailVerificado: false,
       emailVerificadoAt: null,
       estadoCuenta: 'pendiente',
+      rol: 'normal',
     };
     
     repo.findOne.mockResolvedValue(usuarioExistente);
@@ -227,6 +233,7 @@ describe('UsuariosService', () => {
       emailVerificado: false,
       emailVerificadoAt: null,
       estadoCuenta: 'pendiente',
+      rol: 'normal',
     };
 
     repo.findOne.mockResolvedValue(usuarioExistente);
@@ -268,6 +275,29 @@ describe('UsuariosService', () => {
     await expect(service.cambiarContrasena(999, 'hash-123')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('marcarInvitadoVerificado: pone rol invitado, verifica y activa', async () => {
+    const usuario = { id: 1, rol: 'normal', emailVerificado: false, estadoCuenta: 'pendiente' } as any;
+    repo.findOne.mockResolvedValue(usuario);
+    repo.save.mockImplementation(async (u: any) => u);
+
+    const result = await service.marcarInvitadoVerificado(1);
+
+    expect(result.rol).toBe('invitado');
+    expect(result.emailVerificado).toBe(true);
+    expect(result.estadoCuenta).toBe('activa');
+    expect(result.contrasena).toBeUndefined();
+  });
+
+  it('cambiarRol: actualiza el rol', async () => {
+    const usuario = { id: 1, rol: 'invitado' } as any;
+    repo.findOne.mockResolvedValue(usuario);
+    repo.save.mockImplementation(async (u: any) => u);
+
+    const result = await service.cambiarRol(1, 'normal');
+
+    expect(result.rol).toBe('normal');
   });
 
 });

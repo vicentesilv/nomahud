@@ -4,7 +4,7 @@ import { Usuario } from './entitys/usuarios.entity';
 import { Repository } from 'typeorm';
 import { CreateUsuarioDto } from './dtos/create.usuario.dto';
 import { UpdateUsuarioDto } from './dtos/update.usuario.dto';
-import { EstadoCuenta } from './entitys/usuarios.entity';
+import { EstadoCuenta, RolUsuario } from './entitys/usuarios.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -83,6 +83,32 @@ export class UsuariosService {
         };
 
         return usuarioSinContrasena as Usuario;
+    }
+
+    async marcarInvitadoVerificado(id: number): Promise<Usuario> {
+        const usuario = await this.findById(id);
+        if (!usuario) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+        usuario.rol = 'invitado';
+        usuario.emailVerificado = true;
+        usuario.emailVerificadoAt = new Date();
+        usuario.estadoCuenta = 'activa' as EstadoCuenta;
+
+        const actualizado = await this.usuariosRepository.save(usuario);
+        const { contrasena: _, ...sinContrasena } = actualizado as Usuario & { contrasena?: string };
+        return sinContrasena as Usuario;
+    }
+
+    async cambiarRol(id: number, rol: RolUsuario): Promise<Usuario> {
+        const usuario = await this.findById(id);
+        if (!usuario) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+        usuario.rol = rol;
+        const actualizado = await this.usuariosRepository.save(usuario);
+        const { contrasena: _, ...sinContrasena } = actualizado as Usuario & { contrasena?: string };
+        return sinContrasena as Usuario;
     }
 
     async cambiarContrasena(id: number, contrasenaHash: string): Promise<void> {

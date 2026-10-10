@@ -4,19 +4,17 @@ import { Repository } from 'typeorm';
 import { Documento } from './entities/documento.entity';
 import { CrearDocumentoDto } from './dtos/crear-documento.dto';
 import { ActualizarDocumentoDto } from './dtos/actualizar-documento.dto';
+import { StorageService } from '../storage/storage.service';
+import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 import * as path from 'path';
-import * as fs from 'fs/promises';
 
 @Injectable()
 export class DocumentosService {
-    private readonly uploadDir = path.join(process.cwd(), 'uploads', 'documentos');
-
     constructor(
         @InjectRepository(Documento)
         private readonly documentoRepository: Repository<Documento>,
-    ) {
-        fs.mkdir(this.uploadDir, { recursive: true }).catch(() => {});
-    }
+        private readonly storageService: StorageService,
+    ) {}
 
     private validarArchivo(file: Express.Multer.File): string {
         const ext = path.extname(file.originalname).toLowerCase();
@@ -30,12 +28,12 @@ export class DocumentosService {
         return ext;
     }
 
-    private rutaSegura(archivo: string): string {
+    private claveDe(archivo: string): string {
         const base = path.basename(archivo);
         if (!base || base !== archivo || base.includes('..')) {
             throw new BadRequestException('Nombre de archivo inválido');
         }
-        return path.join(this.uploadDir, base);
+        return `documentos/${base}`;
     }
 
     async create(creadorId: number, file: Express.Multer.File, dto: CrearDocumentoDto): Promise<Documento> {
@@ -43,7 +41,7 @@ export class DocumentosService {
         const nombre = dto.nombre || file.originalname;
         const archivo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
 
-        await fs.writeFile(this.rutaSegura(archivo), file.buffer);
+        await this.storageService.guardar('documentos', archivo, file.buffer, file.mimetype);
 
         const doc = this.documentoRepository.create({
             nombre,
@@ -57,13 +55,17 @@ export class DocumentosService {
         return this.documentoRepository.save(doc);
     }
 
-    async findAll(creadorId: number, tipo?: string): Promise<Documento[]> {
+    async findAll(creadorId: number, tipo?: string, pag?: PaginacionDto): Promise<Pagina<Documento>> {
         const where: any = { creadorId };
         if (tipo) where.tipo = tipo;
-        return this.documentoRepository.find({
+        const { skip, take } = skipTake(pag ?? {});
+        const [datos, total] = await this.documentoRepository.findAndCount({
             where,
             order: { createdAt: 'DESC' },
+            skip,
+            take,
         });
+        return paginar(datos, total, pag ?? {});
     }
 
     async findOne(id: number, creadorId: number): Promise<Documento> {
@@ -80,11 +82,10 @@ export class DocumentosService {
 
     async reemplazarArchivo(id: number, creadorId: number, file: Express.Multer.File): Promise<Documento> {
         const doc = await this.findOne(id, creadorId);
-        const rutaVieja = this.rutaSegura(doc.archivo);
-        await fs.unlink(rutaVieja).catch(() => {});
+        await this.storageService.borrar(this.claveDe(doc.archivo));
         const ext = this.validarArchivo(file);
         const archivo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-        await fs.writeFile(this.rutaSegura(archivo), file.buffer);
+        await this.storageService.guardar('documentos', archivo, file.buffer, file.mimetype);
         doc.archivo = archivo;
         doc.mimeType = file.mimetype;
         doc.size = file.size;
@@ -93,12 +94,11 @@ export class DocumentosService {
 
     async remove(id: number, creadorId: number): Promise<void> {
         const doc = await this.findOne(id, creadorId);
-        const ruta = this.rutaSegura(doc.archivo);
-        await fs.unlink(ruta).catch(() => {});
+        await this.storageService.borrar(this.claveDe(doc.archivo));
         await this.documentoRepository.remove(doc);
     }
 
-    getRutaArchivo(archivo: string): string {
-        return this.rutaSegura(archivo);
+    async leerArchivo(doc: Documento): Promise<{ stream: NodeJS.ReadableStream; mimeType?: string }> {
+        return this.storageService.leer(this.claveDe(doc.archivo));
     }
 }

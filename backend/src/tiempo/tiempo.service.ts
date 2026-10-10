@@ -4,7 +4,9 @@ import { Repository } from 'typeorm';
 import { RegistroTiempo } from './entities/registro-tiempo.entity';
 import { CrearRegistroTiempoDto } from './dtos/crear-registro-tiempo.dto';
 import { ActualizarRegistroTiempoDto } from './dtos/actualizar-registro-tiempo.dto';
+import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 import { Proyecto } from '../proyectos/entities/proyecto.entity';
+import { ProyectoMiembro } from '../proyectos/entities/proyecto-miembro.entity';
 import { Tarea } from '../tareas/entities/tarea.entity';
 
 @Injectable()
@@ -14,19 +16,31 @@ export class TiempoService {
         private readonly registroRepository: Repository<RegistroTiempo>,
     ) {}
 
+    private async puedeEscribirProyecto(creadorId: number, proyectoId: number): Promise<boolean> {
+        const manager = this.registroRepository.manager;
+        const proyecto = await manager.findOne(Proyecto, { where: { id: proyectoId }, select: ['id', 'creadorId'] });
+        if (!proyecto) return false;
+        if (proyecto.creadorId === creadorId) return true;
+        const miembro = await manager.findOne(ProyectoMiembro, { where: { proyectoId, usuarioId: creadorId } });
+        return !!miembro && miembro.rol === 'editor';
+    }
+
     private async verificarReferenciasPropias(creadorId: number, proyectoId?: number | null, tareaId?: number | null): Promise<void> {
         const manager = this.registroRepository.manager;
         if (proyectoId != null) {
-            const proyecto = await manager.findOne(Proyecto, { where: { id: proyectoId, creadorId }, select: ['id'] });
-            if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+            if (!(await this.puedeEscribirProyecto(creadorId, proyectoId))) {
+                throw new NotFoundException('Proyecto no encontrado');
+            }
         }
         if (tareaId != null) {
             const tarea = await manager.findOne(Tarea, {
-                where: { id: tareaId, proyecto: { creadorId } },
+                where: { id: tareaId },
                 relations: ['proyecto'],
-                select: ['id'],
             });
             if (!tarea) throw new NotFoundException('Tarea no encontrada');
+            if (!(await this.puedeEscribirProyecto(creadorId, tarea.proyectoId))) {
+                throw new NotFoundException('Tarea no encontrada');
+            }
         }
     }
 
@@ -36,12 +50,16 @@ export class TiempoService {
         return this.registroRepository.save(registro);
     }
 
-    async findAll(creadorId: number): Promise<RegistroTiempo[]> {
-        return this.registroRepository.find({
+    async findAll(creadorId: number, pag?: PaginacionDto): Promise<Pagina<RegistroTiempo>> {
+        const { skip, take } = skipTake(pag ?? {});
+        const [datos, total] = await this.registroRepository.findAndCount({
             where: { creadorId },
             order: { fecha: 'DESC', createdAt: 'DESC' },
             relations: ['proyecto', 'tarea'],
+            skip,
+            take,
         });
+        return paginar(datos, total, pag ?? {});
     }
 
     async findOne(id: number, creadorId: number): Promise<RegistroTiempo> {

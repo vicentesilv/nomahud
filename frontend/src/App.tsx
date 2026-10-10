@@ -12,6 +12,7 @@ import PerfilPublico from './pages/perfiles/PerfilPublico';
 import ListaProyectos from './pages/proyectos/ListaProyectos';
 import NuevoProyecto from './pages/proyectos/NuevoProyecto';
 import DetalleProyecto from './pages/proyectos/DetalleProyecto';
+import AceptarInvitacion from './pages/proyectos/AceptarInvitacion';
 import ListaClientes from './pages/clientes/ListaClientes';
 import NuevoCliente from './pages/clientes/NuevoCliente';
 import DetalleCliente from './pages/clientes/DetalleCliente';
@@ -24,6 +25,7 @@ import NuevoViaje from './pages/viajes/NuevoViaje';
 import DetalleViaje from './pages/viajes/DetalleViaje';
 import ListaDocumentos from './pages/documentos/ListaDocumentos';
 import ListaTareas from './pages/tareas/ListaTareas';
+import Calendario from './pages/Calendario';
 import ListaDashboard from './pages/ListaDashboard';
 
 export default function App() {
@@ -36,6 +38,7 @@ export default function App() {
           <Route path="/olvide-contrasena" element={<OlvideContrasena />} />
           <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
           <Route path="/confirmar-cuenta" element={<ConfirmarCuenta />} />
+          <Route path="/proyectos/invitacion" element={<AceptarInvitacion />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<ListaDashboard />} />
@@ -45,6 +48,7 @@ export default function App() {
               <Route path="/proyectos/nuevo" element={<NuevoProyecto />} />
               <Route path="/proyectos/:id" element={<DetalleProyecto />} />
               <Route path="/tareas" element={<ListaTareas />} />
+              <Route path="/calendario" element={<Calendario />} />
               <Route path="/clientes" element={<ListaClientes />} />
               <Route path="/clientes/nuevo" element={<NuevoCliente />} />
               <Route path="/clientes/:id" element={<DetalleCliente />} />

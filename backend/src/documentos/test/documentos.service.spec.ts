@@ -3,19 +3,14 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { DocumentosService } from '../documentos.service';
 import { Documento } from '../entities/documento.entity';
-import * as fs from 'fs/promises';
-
-jest.mock('fs/promises', () => ({
-  mkdir: jest.fn().mockResolvedValue(undefined),
-  writeFile: jest.fn().mockResolvedValue(undefined),
-  unlink: jest.fn().mockResolvedValue(undefined),
-}));
+import { StorageService } from '../../storage/storage.service';
 
 describe('DocumentosService', () => {
   let service: DocumentosService;
   let repo: jest.Mocked<{
     create: jest.Mock;
     find: jest.Mock;
+    findAndCount: jest.Mock;
     findOne: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
@@ -39,9 +34,18 @@ describe('DocumentosService', () => {
           useValue: {
             create: jest.fn(),
             find: jest.fn(),
+            findAndCount: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
+          },
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            guardar: jest.fn().mockResolvedValue({ clave: 'documentos/x.pdf', url: '/archivos/documentos/x.pdf' }),
+            leer: jest.fn(),
+            borrar: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -59,7 +63,8 @@ describe('DocumentosService', () => {
 
     const result = await service.create(1, file, dto);
 
-    expect(fs.writeFile).toHaveBeenCalled();
+    const storage = service['storageService'] as unknown as { guardar: jest.Mock; borrar: jest.Mock };
+    expect(storage.guardar).toHaveBeenCalledWith('documentos', expect.stringMatching(/\.pdf$/), expect.any(Buffer), 'application/pdf');
     expect(repo.create).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: 'proyecto', entidadId: 1, creadorId: 1 }),
     );
@@ -68,28 +73,32 @@ describe('DocumentosService', () => {
 
   it('findAll: retorna documentos filtrados por tipo', async () => {
     const docs = [{ id: 1 }] as Documento[];
-    repo.find.mockResolvedValue(docs);
+    repo.findAndCount.mockResolvedValue([docs, 1]);
 
     const result = await service.findAll(1, 'proyecto');
 
-    expect(repo.find).toHaveBeenCalledWith({
+    expect(repo.findAndCount).toHaveBeenCalledWith({
       where: { creadorId: 1, tipo: 'proyecto' },
       order: { createdAt: 'DESC' },
+      skip: 0,
+      take: 20,
     });
-    expect(result).toBe(docs);
+    expect(result).toEqual({ datos: docs, total: 1, pagina: 1, limite: 20 });
   });
 
   it('findAll: retorna documentos sin filtro de tipo', async () => {
     const docs = [{ id: 1 }] as Documento[];
-    repo.find.mockResolvedValue(docs);
+    repo.findAndCount.mockResolvedValue([docs, 1]);
 
     const result = await service.findAll(1);
 
-    expect(repo.find).toHaveBeenCalledWith({
+    expect(repo.findAndCount).toHaveBeenCalledWith({
       where: { creadorId: 1 },
       order: { createdAt: 'DESC' },
+      skip: 0,
+      take: 20,
     });
-    expect(result).toBe(docs);
+    expect(result).toEqual({ datos: docs, total: 1, pagina: 1, limite: 20 });
   });
 
   it('findOne: retorna documento si existe', async () => {
@@ -124,8 +133,9 @@ describe('DocumentosService', () => {
 
     const result = await service.reemplazarArchivo(1, 1, makeFile());
 
-    expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('viejo.pdf'));
-    expect(fs.writeFile).toHaveBeenCalled();
+    const storage = service['storageService'] as unknown as { guardar: jest.Mock; borrar: jest.Mock };
+    expect(storage.borrar).toHaveBeenCalledWith('documentos/viejo.pdf');
+    expect(storage.guardar).toHaveBeenCalled();
     expect(result.archivo).toBeDefined();
   });
 
@@ -135,7 +145,8 @@ describe('DocumentosService', () => {
 
     await service.remove(1, 1);
 
-    expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('doc.pdf'));
+    const storage = service['storageService'] as unknown as { guardar: jest.Mock; borrar: jest.Mock };
+    expect(storage.borrar).toHaveBeenCalledWith('documentos/doc.pdf');
     expect(repo.remove).toHaveBeenCalledWith(doc);
   });
 });

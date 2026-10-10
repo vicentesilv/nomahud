@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { PaginacionDto } from '../common/dtos/paginacion.dto';
 import { ClientesService } from './clientes.service';
 import { CrearClienteDto } from './dtos/crear-cliente.dto';
 import { ActualizarClienteDto } from './dtos/actualizar-cliente.dto';
@@ -17,8 +18,8 @@ export class ClientesController {
     }
 
     @Get()
-    async findAll(@User() usuario: Usuario) {
-        return this.clientesService.findAll(usuario.id);
+    async findAll(@User() usuario: Usuario, @Query() pag: PaginacionDto) {
+        return this.clientesService.findAll(usuario.id, pag);
     }
 
     @Get(':id')

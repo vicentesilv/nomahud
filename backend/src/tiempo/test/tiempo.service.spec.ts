@@ -9,6 +9,7 @@ describe('TiempoService', () => {
   let repo: jest.Mocked<{
     create: jest.Mock;
     find: jest.Mock;
+    findAndCount: jest.Mock;
     findOne: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
@@ -24,10 +25,11 @@ describe('TiempoService', () => {
           useValue: {
             create: jest.fn(),
             find: jest.fn(),
+            findAndCount: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
-            manager: { findOne: jest.fn().mockResolvedValue({ id: 1 }) },
+            manager: { findOne: jest.fn().mockResolvedValue({ id: 1, creadorId: 1 }) },
           },
         },
       ],
@@ -50,16 +52,18 @@ describe('TiempoService', () => {
 
   it('findAll: retorna registros del usuario', async () => {
     const registros = [{ id: 1 }] as RegistroTiempo[];
-    repo.find.mockResolvedValue(registros);
+    repo.findAndCount.mockResolvedValue([registros, 1]);
 
     const result = await service.findAll(1);
 
-    expect(repo.find).toHaveBeenCalledWith({
+    expect(repo.findAndCount).toHaveBeenCalledWith({
       where: { creadorId: 1 },
       order: { fecha: 'DESC', createdAt: 'DESC' },
       relations: ['proyecto', 'tarea'],
+      skip: 0,
+      take: 20,
     });
-    expect(result).toBe(registros);
+    expect(result).toEqual({ datos: registros, total: 1, pagina: 1, limite: 20 });
   });
 
   it('findOne: retorna registro si existe', async () => {

@@ -48,19 +48,19 @@ describe('DocumentosController', () => {
   });
 
   it('findAll: delega en service', async () => {
-    service.findAll.mockResolvedValue([]);
+    service.findAll.mockResolvedValue({ datos: [], total: 0, pagina: 1, limite: 20 });
 
-    await controller.findAll(usuario, 'proyecto');
+    await controller.findAll(usuario, 'proyecto', {});
 
-    expect(service.findAll).toHaveBeenCalledWith(1, 'proyecto');
+    expect(service.findAll).toHaveBeenCalledWith(1, 'proyecto', {});
   });
 
   it('findAll: sin filtro de tipo', async () => {
-    service.findAll.mockResolvedValue([]);
+    service.findAll.mockResolvedValue({ datos: [], total: 0, pagina: 1, limite: 20 });
 
-    await controller.findAll(usuario);
+    await controller.findAll(usuario, undefined, {});
 
-    expect(service.findAll).toHaveBeenCalledWith(1, undefined);
+    expect(service.findAll).toHaveBeenCalledWith(1, undefined, {});
   });
 
   it('findOne: delega en service', async () => {

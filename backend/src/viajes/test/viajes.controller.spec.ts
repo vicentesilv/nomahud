@@ -42,11 +42,11 @@ describe('ViajesController', () => {
   });
 
   it('findAll: delega en service', async () => {
-    service.findAll.mockResolvedValue([]);
+    service.findAll.mockResolvedValue({ datos: [], total: 0, pagina: 1, limite: 20 });
 
-    await controller.findAll(usuario);
+    await controller.findAll(usuario, {});
 
-    expect(service.findAll).toHaveBeenCalledWith(1);
+    expect(service.findAll).toHaveBeenCalledWith(1, {});
   });
 
   it('findOne: delega en service', async () => {

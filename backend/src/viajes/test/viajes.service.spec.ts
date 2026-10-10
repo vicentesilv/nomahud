@@ -11,6 +11,7 @@ describe('ViajesService', () => {
   let viajeRepo: jest.Mocked<{
     create: jest.Mock;
     find: jest.Mock;
+    findAndCount: jest.Mock;
     findOne: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
@@ -33,6 +34,7 @@ describe('ViajesService', () => {
           useValue: {
             create: jest.fn(),
             find: jest.fn(),
+            findAndCount: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
@@ -95,15 +97,17 @@ describe('ViajesService', () => {
 
   it('findAll: retorna viajes del usuario', async () => {
     const viajes = [{ id: 1 }] as Viaje[];
-    viajeRepo.find.mockResolvedValue(viajes);
+    viajeRepo.findAndCount.mockResolvedValue([viajes, 1]);
 
     const result = await service.findAll(1);
 
-    expect(viajeRepo.find).toHaveBeenCalledWith({
+    expect(viajeRepo.findAndCount).toHaveBeenCalledWith({
       where: { creadorId: 1 },
       order: { createdAt: 'DESC' },
+      skip: 0,
+      take: 20,
     });
-    expect(result).toBe(viajes);
+    expect(result).toEqual({ datos: viajes, total: 1, pagina: 1, limite: 20 });
   });
 
   it('findOne: retorna viaje con itinerario', async () => {

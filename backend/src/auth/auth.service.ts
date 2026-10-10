@@ -8,6 +8,9 @@ import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthToken } from './entitys/auth-token.entity';
+import { RefreshToken } from './entitys/refresh-token.entity';
+import { ProyectoInvitacion } from '../proyectos/entities/proyecto-invitacion.entity';
+import { ProyectoMiembro } from '../proyectos/entities/proyecto-miembro.entity';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
 
@@ -28,6 +31,12 @@ export class AuthService {
         private readonly configService: ConfigService,
         @InjectRepository(AuthToken)
         private readonly authTokenRepository: Repository<AuthToken>,
+        @InjectRepository(RefreshToken)
+        private readonly refreshTokenRepository: Repository<RefreshToken>,
+        @InjectRepository(ProyectoInvitacion)
+        private readonly invitacionRepository: Repository<ProyectoInvitacion>,
+        @InjectRepository(ProyectoMiembro)
+        private readonly miembroRepository: Repository<ProyectoMiembro>,
     ) {}
 
     private async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
@@ -47,7 +56,52 @@ export class AuthService {
         );
     }
 
-    async login(correo: string, contrasena: string): Promise<{ token: string; usuario: any }> {
+    private async emitirRefreshToken(usuarioId: number): Promise<string> {
+        const token = crypto.randomBytes(48).toString('hex');
+        const expiraEn = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await this.refreshTokenRepository.save(
+            this.refreshTokenRepository.create({
+                usuarioId,
+                tokenHash: crypto.createHash('sha256').update(token).digest('hex'),
+                expiraEn,
+            }),
+        );
+        return token;
+    }
+
+    async renovar(refreshToken: string): Promise<{ token: string; refreshToken: string; usuario: any }> {
+        const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+        const guardado = await this.refreshTokenRepository.findOne({ where: { tokenHash } });
+        if (!guardado || guardado.revocadoEn || guardado.expiraEn.getTime() < Date.now()) {
+            throw new UnauthorizedException('Sesión expirada, volvé a iniciar sesión');
+        }
+        const usuario = await this.usuariosService.findById(guardado.usuarioId);
+        if (!usuario || !usuario.emailVerificado || usuario.estadoCuenta !== 'activa') {
+            throw new UnauthorizedException('Cuenta no activa');
+        }
+
+        guardado.revocadoEn = new Date();
+        await this.refreshTokenRepository.save(guardado);
+
+        const { contrasena: _, ...usuarioSinContrasena } = usuario as Usuario & { contrasena?: string };
+        return {
+            token: this.generateToken(usuario.id, usuario.correo),
+            refreshToken: await this.emitirRefreshToken(usuario.id),
+            usuario: usuarioSinContrasena,
+        };
+    }
+
+    async cerrarSesion(refreshToken: string, usuarioId: number): Promise<{ mensaje: string }> {
+        const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+        const guardado = await this.refreshTokenRepository.findOne({ where: { tokenHash, usuarioId } });
+        if (guardado && !guardado.revocadoEn) {
+            guardado.revocadoEn = new Date();
+            await this.refreshTokenRepository.save(guardado);
+        }
+        return { mensaje: 'Sesión cerrada correctamente' };
+    }
+
+    async login(correo: string, contrasena: string): Promise<{ token: string; refreshToken: string; usuario: any }> {
         const usuario = await this.usuariosService.findByEmailWithPassword(correo);
 
         if (!usuario) {
@@ -78,6 +132,7 @@ export class AuthService {
 
         return {
             token,
+            refreshToken: await this.emitirRefreshToken(usuarioSinContrasena.id),
             usuario: usuarioSinContrasena,
         };
     }
@@ -88,11 +143,16 @@ export class AuthService {
         contrasena: string,
         ciudad?: string,
         fechaNacimiento?: Date,
-    ): Promise<{ usuario: any }> {
+        invitacionToken?: string,
+    ): Promise<{ usuario: any; token?: string; refreshToken?: string }> {
         const usuarioExistente = await this.usuariosService.findByEmail(correo);
 
         if (usuarioExistente) {
             throw new BadRequestException('El usuario ya existe');
+        }
+
+        if (invitacionToken) {
+            return this.registerConInvitacion(nombre, correo, contrasena, ciudad, fechaNacimiento, invitacionToken);
         }
 
         const contrasenaHash = await bcrypt.hash(contrasena, 10);
@@ -121,6 +181,68 @@ export class AuthService {
         return {
             usuario: usuarioCreado,
         };
+    }
+
+    private async registerConInvitacion(
+        nombre: string,
+        correo: string,
+        contrasena: string,
+        ciudad: string | undefined,
+        fechaNacimiento: Date | undefined,
+        invitacionToken: string,
+    ): Promise<{ usuario: any; token: string; refreshToken: string }> {
+        const tokenHash = crypto.createHash('sha256').update(invitacionToken).digest('hex');
+        const invitacion = await this.invitacionRepository.findOne({ where: { tokenHash } });
+        if (!invitacion) throw new BadRequestException('Invitación inválida');
+        if (invitacion.usadoEn) throw new BadRequestException('Invitación ya utilizada');
+        if (invitacion.expiraEn.getTime() < Date.now()) throw new BadRequestException('Invitación expirada');
+        if (invitacion.email.toLowerCase() !== correo.toLowerCase()) {
+            throw new BadRequestException('El correo no coincide con el de la invitación');
+        }
+
+        const contrasenaHash = await bcrypt.hash(contrasena, 10);
+        const usuarioCreado = await this.usuariosService.createUsuario({
+            nombre,
+            correo,
+            contrasena: contrasenaHash,
+            ciudad,
+            fechaNacimiento,
+        });
+
+        await this.usuariosService.marcarInvitadoVerificado(usuarioCreado.id);
+        await this.perfilesService.findOrCreate(usuarioCreado.id);
+
+        const existente = await this.miembroRepository.findOne({
+            where: { proyectoId: invitacion.proyectoId, usuarioId: usuarioCreado.id },
+        });
+        if (!existente) {
+            await this.miembroRepository.save(
+                this.miembroRepository.create({ proyectoId: invitacion.proyectoId, usuarioId: usuarioCreado.id, rol: invitacion.rol }),
+            );
+        }
+        invitacion.usadoEn = new Date();
+        await this.invitacionRepository.save(invitacion);
+
+        const usuario = await this.usuariosService.findById(usuarioCreado.id);
+        const { contrasena: _, ...usuarioSinContrasena } = usuario as Usuario & { contrasena?: string };
+        this.logger.log(`Registro por invitación: usuarioId=${usuarioCreado.id} proyectoId=${invitacion.proyectoId}`);
+        return {
+            usuario: usuarioSinContrasena,
+            token: this.generateToken(usuarioCreado.id, correo),
+            refreshToken: await this.emitirRefreshToken(usuarioCreado.id),
+        };
+    }
+
+    /** Un invitado completa su registro y pasa a rol normal con acceso total. */
+    async completarRegistro(usuarioId: number): Promise<{ usuario: any }> {
+        const usuario = await this.usuariosService.findById(usuarioId);
+        if (!usuario) throw new BadRequestException('Usuario no encontrado');
+        if (usuario.rol !== 'invitado') {
+            return { usuario };
+        }
+        const actualizado = await this.usuariosService.cambiarRol(usuarioId, 'normal');
+        this.logger.log(`Cuenta convertida a normal: usuarioId=${usuarioId}`);
+        return { usuario: actualizado };
     }
 
     async confirmarCuenta(token: string): Promise<{ mensaje: string }> {

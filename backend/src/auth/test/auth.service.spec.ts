@@ -10,6 +10,9 @@ import { UsuariosService } from '../../usuarios/usuarios.service';
 import { PerfilesService } from '../../perfiles/perfiles.service';
 import { MailService } from '../../mail/mail.service';
 import { AuthToken } from '../entitys/auth-token.entity';
+import { RefreshToken } from '../entitys/refresh-token.entity';
+import { ProyectoInvitacion } from '../../proyectos/entities/proyecto-invitacion.entity';
+import { ProyectoMiembro } from '../../proyectos/entities/proyecto-miembro.entity';
 
 jest.mock('bcrypt', () => ({
 	compare: jest.fn(),
@@ -21,7 +24,7 @@ jest.mock('crypto', () => {
 
 	return {
 		...actualCrypto,
-		randomBytes: jest.fn(),
+		randomBytes: jest.fn().mockReturnValue(Buffer.from('refresh-token-generico')),
 	};
 });
 
@@ -53,7 +56,10 @@ describe('AuthService', () => {
 						findByEmail: jest.fn(),
 						findByEmailWithPassword: jest.fn(),
 						findById: jest.fn(),
+						findByIdWithPassword: jest.fn(),
 						marcarEmailVerificado: jest.fn(),
+						marcarInvitadoVerificado: jest.fn(),
+						cambiarRol: jest.fn(),
 						cambiarContrasena: jest.fn(),
 						createUsuario: jest.fn(),
 					},
@@ -90,6 +96,29 @@ describe('AuthService', () => {
 					provide: getRepositoryToken(AuthToken),
 					useValue: {
 						create: jest.fn(),
+						findOne: jest.fn(),
+						save: jest.fn(),
+					},
+				},
+				{
+					provide: getRepositoryToken(RefreshToken),
+					useValue: {
+						create: jest.fn((x) => x),
+						findOne: jest.fn(),
+						save: jest.fn(),
+					},
+				},
+				{
+					provide: getRepositoryToken(ProyectoInvitacion),
+					useValue: {
+						findOne: jest.fn(),
+						save: jest.fn(),
+					},
+				},
+				{
+					provide: getRepositoryToken(ProyectoMiembro),
+					useValue: {
+						create: jest.fn((x) => x),
 						findOne: jest.fn(),
 						save: jest.fn(),
 					},
@@ -185,6 +214,7 @@ describe('AuthService', () => {
 		expect(jwtService.sign).toHaveBeenCalled();
 		expect(result).toEqual({
 			token: 'jwt-token',
+			refreshToken: expect.any(String),
 			usuario: {
 				id: 10,
 				nombre: 'Vicente',
@@ -246,6 +276,7 @@ describe('AuthService', () => {
 			contrasena: 'hashed-password',
 			emailVerificado: false,
 			estadoCuenta: 'pendiente',
+      rol: 'normal',
 			ciudad: 'Santiago',
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any);
@@ -265,6 +296,7 @@ describe('AuthService', () => {
 			contrasena: 'hashed-password',
 			emailVerificado: true,
 			estadoCuenta: 'pendiente',
+      rol: 'normal',
 			ciudad: 'Santiago',
 			fechaNacimiento: new Date('2000-01-01'),
 		} as any);
@@ -554,6 +586,115 @@ describe('AuthService', () => {
 			BadRequestException,
 		);
 		expect(usuariosService.cambiarContrasena).not.toHaveBeenCalled();
+	});
+
+	it('renovar: rota tokens si el refresh es válido', async () => {
+		const refreshRepo = service['refreshTokenRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock; create: jest.Mock };
+		refreshRepo.findOne.mockResolvedValue({
+			id: 1,
+			usuarioId: 10,
+			revocadoEn: null,
+			expiraEn: new Date(Date.now() + 864e5),
+		});
+		refreshRepo.save.mockImplementation(async (x: unknown) => x);
+		usuariosService.findById.mockResolvedValue({
+			id: 10,
+			nombre: 'Vicente',
+			correo: 'vicente@mail.com',
+			emailVerificado: true,
+			estadoCuenta: 'activa',
+		} as never);
+		jwtService.sign.mockReturnValue('nuevo-jwt');
+
+		const result = await service.renovar('refresh-crudo');
+
+		expect(result.token).toBe('nuevo-jwt');
+		expect(result.refreshToken).toEqual(expect.any(String));
+		expect(refreshRepo.save).toHaveBeenCalledWith(expect.objectContaining({ revocadoEn: expect.any(Date) }));
+	});
+
+	it('renovar: rechaza token revocado o expirado', async () => {
+		const refreshRepo = service['refreshTokenRepository'] as unknown as { findOne: jest.Mock };
+		refreshRepo.findOne.mockResolvedValue({ id: 1, revocadoEn: new Date(), expiraEn: new Date(Date.now() + 864e5) });
+
+		await expect(service.renovar('revocado')).rejects.toBeInstanceOf(UnauthorizedException);
+
+		refreshRepo.findOne.mockResolvedValue(null);
+		await expect(service.renovar('inexistente')).rejects.toBeInstanceOf(UnauthorizedException);
+	});
+
+	it('cerrarSesion: revoca el refresh del usuario', async () => {
+		const refreshRepo = service['refreshTokenRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock };
+		const guardado = { id: 1, usuarioId: 10, revocadoEn: null };
+		refreshRepo.findOne.mockResolvedValue(guardado);
+		refreshRepo.save.mockResolvedValue(guardado);
+
+		const result = await service.cerrarSesion('refresh-crudo', 10);
+
+		expect(refreshRepo.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ usuarioId: 10 }) }));
+		expect(result).toEqual({ mensaje: 'Sesión cerrada correctamente' });
+	});
+
+	it('register con invitación: crea invitado verificado, miembro y devuelve sesión', async () => {
+		const invRepo = service['invitacionRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock };
+		invRepo.findOne.mockResolvedValue({
+			id: 3, proyectoId: 1, email: 'invitado@mail.com', rol: 'editor',
+			usadoEn: null, expiraEn: new Date(Date.now() + 864e5),
+		});
+		invRepo.save.mockResolvedValue({});
+		const miembroRepo = service['miembroRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock; create: jest.Mock };
+		miembroRepo.findOne.mockResolvedValue(null);
+		miembroRepo.save.mockResolvedValue({ id: 1 });
+		usuariosService.findByEmail.mockResolvedValue(null);
+		(bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
+		usuariosService.createUsuario.mockResolvedValue({ id: 30 } as never);
+		usuariosService.marcarInvitadoVerificado.mockResolvedValue({ id: 30 } as never);
+		usuariosService.findById.mockResolvedValue({
+			id: 30, nombre: 'Invitado', correo: 'invitado@mail.com', rol: 'invitado',
+			emailVerificado: true, estadoCuenta: 'activa',
+		} as never);
+		jwtService.sign.mockReturnValue('jwt-invitado');
+
+		const result = await service.register('Invitado', 'invitado@mail.com', '12345678', undefined, undefined, 'token-invitacion');
+
+		expect(usuariosService.marcarInvitadoVerificado).toHaveBeenCalledWith(30);
+		expect(miembroRepo.save).toHaveBeenCalled();
+		expect(result.token).toBe('jwt-invitado');
+		expect(result.refreshToken).toEqual(expect.any(String));
+		expect(result.usuario.rol).toBe('invitado');
+		expect(mailService.sendMail).not.toHaveBeenCalled();
+	});
+
+	it('register con invitación: rechaza correo distinto', async () => {
+		const invRepo = service['invitacionRepository'] as unknown as { findOne: jest.Mock };
+		invRepo.findOne.mockResolvedValue({
+			id: 3, proyectoId: 1, email: 'otro@mail.com', rol: 'editor',
+			usadoEn: null, expiraEn: new Date(Date.now() + 864e5),
+		});
+		usuariosService.findByEmail.mockResolvedValue(null);
+
+		await expect(
+			service.register('X', 'invitado@mail.com', '12345678', undefined, undefined, 'token-invitacion'),
+		).rejects.toBeInstanceOf(BadRequestException);
+	});
+
+	it('completarRegistro: invitado pasa a normal', async () => {
+		usuariosService.findById.mockResolvedValue({ id: 10, rol: 'invitado' } as never);
+		usuariosService.cambiarRol.mockResolvedValue({ id: 10, rol: 'normal' } as never);
+
+		const result = await service.completarRegistro(10);
+
+		expect(usuariosService.cambiarRol).toHaveBeenCalledWith(10, 'normal');
+		expect(result.usuario.rol).toBe('normal');
+	});
+
+	it('completarRegistro: normal queda igual', async () => {
+		usuariosService.findById.mockResolvedValue({ id: 10, rol: 'normal' } as never);
+
+		const result = await service.completarRegistro(10);
+
+		expect(usuariosService.cambiarRol).not.toHaveBeenCalled();
+		expect(result.usuario.rol).toBe('normal');
 	});
 
 });

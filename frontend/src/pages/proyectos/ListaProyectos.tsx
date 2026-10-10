@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import api, { extraerLista } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Proyecto {
   id: number;
@@ -85,13 +86,15 @@ function IconGrid() {
 }
 
 export default function ListaProyectos() {
+  const { usuario } = useAuth();
+  const esInvitado = usuario?.rol === 'invitado';
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [loading, setLoading] = useState(true);
   const [vista, setVista] = useState<'tarjeta' | 'lista'>('tarjeta');
 
   useEffect(() => {
     api.get('/proyectos').then(({ data }) => {
-      setProyectos(data);
+      setProyectos(extraerLista(data));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -138,10 +141,12 @@ export default function ListaProyectos() {
               <IconList />
             </button>
           </div>
-          <Link to="/proyectos/nuevo" className="btn-primary btn-icon">
-            <IconPlus />
-            Nuevo proyecto
-          </Link>
+          {!esInvitado && (
+            <Link to="/proyectos/nuevo" className="btn-primary btn-icon">
+              <IconPlus />
+              Nuevo proyecto
+            </Link>
+          )}
         </div>
       </div>
 
@@ -149,11 +154,13 @@ export default function ListaProyectos() {
         <div className="proyectos-empty">
           <div className="proyectos-empty-icon"><IconFolder /></div>
           <h3>No hay proyectos todavía</h3>
-          <p>Creá tu primer proyecto para empezar a organizar tu trabajo.</p>
-          <Link to="/proyectos/nuevo" className="btn-primary btn-icon" style={{ width: 'auto' }}>
-            <IconPlus />
-            Crear proyecto
-          </Link>
+          <p>{esInvitado ? 'Todavía no te compartieron ningún proyecto.' : 'Creá tu primer proyecto para empezar a organizar tu trabajo.'}</p>
+          {!esInvitado && (
+            <Link to="/proyectos/nuevo" className="btn-primary btn-icon" style={{ width: 'auto' }}>
+              <IconPlus />
+              Crear proyecto
+            </Link>
+          )}
         </div>
       ) : vista === 'tarjeta' ? (
         <div className="proyectos-grid">

@@ -1,5 +1,6 @@
-import { useState, useMemo, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -19,14 +20,27 @@ function getPasswordStrength(pw: string): { score: number; label: string; bars: 
 }
 
 export default function Register() {
+  const [params] = useSearchParams();
+  const invitacionToken = params.get('invitacion') || '';
   const [form, setForm] = useState({ nombre: '', correo: '', contrasena: '', ciudad: '', fechaNacimiento: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [proyectoInvitado, setProyectoInvitado] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (!invitacionToken) return;
+    api.get(`/proyectos/invitaciones/${invitacionToken}`)
+      .then(({ data }) => {
+        setForm((f) => ({ ...f, correo: data.email || '' }));
+        setProyectoInvitado(data.proyectoNombre || '');
+      })
+      .catch(() => setError('Invitación inválida o expirada'));
+  }, [invitacionToken]);
 
   const strength = useMemo(() => getPasswordStrength(form.contrasena), [form.contrasena]);
 
@@ -40,11 +54,17 @@ export default function Register() {
     setSuccess('');
     setIsLoading(true);
     try {
-      await register(form.nombre, form.correo, form.contrasena, form.ciudad || undefined, form.fechaNacimiento || undefined);
-      setSuccess('Registro exitoso. Revisa tu correo para confirmar la cuenta.');
-      setTimeout(() => navigate('/inicio-sesion'), 3000);
+      const sesion = await register(form.nombre, form.correo, form.contrasena, form.ciudad || undefined, form.fechaNacimiento || undefined, invitacionToken || undefined);
+      if (invitacionToken && sesion?.token) {
+        setSuccess('¡Cuenta creada! Entrando a tus proyectos compartidos...');
+        setTimeout(() => navigate('/proyectos'), 1500);
+      } else {
+        setSuccess('Registro exitoso. Revisa tu correo para confirmar la cuenta.');
+        setTimeout(() => navigate('/inicio-sesion'), 3000);
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al registrarse');
+      const m = err.response?.data?.message;
+      setError(typeof m === 'string' ? m : 'Error al registrarse');
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +93,9 @@ export default function Register() {
           <h1>Noma<span>Hud</span></h1>
           <p>Únete a la comunidad nómada</p>
         </div>
+        {invitacionToken && proyectoInvitado && (
+          <div className="success-msg">Te invitaron al proyecto <strong>{proyectoInvitado}</strong> como invitado: solo verás los proyectos compartidos hasta completar tu registro.</div>
+        )}
         <form onSubmit={handleSubmit} noValidate>
           {error && <div className="error-msg">{error}</div>}
           {success && <div className="success-msg">{success}</div>}
@@ -85,7 +108,7 @@ export default function Register() {
           <div className="field">
             <label htmlFor="correo">Correo electrónico</label>
             <div className="input-wrapper">
-              <input id="correo" name="correo" type="email" value={form.correo} onChange={handleChange} required placeholder="tu@correo.com" autoComplete="email" disabled={isLoading} />
+              <input id="correo" name="correo" type="email" value={form.correo} onChange={handleChange} required placeholder="tu@correo.com" autoComplete="email" disabled={isLoading || !!invitacionToken} />
             </div>
           </div>
           <div className="field">

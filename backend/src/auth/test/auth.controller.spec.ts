@@ -20,6 +20,9 @@ describe('AuthController', () => {
 						reenviarConfirmacion: jest.fn(),
 						solicitarRecuperacion: jest.fn(),
 						restablecerContrasena: jest.fn(),
+						renovar: jest.fn(),
+						cerrarSesion: jest.fn(),
+						completarRegistro: jest.fn(),
 					},
 				},
 			],
@@ -62,6 +65,7 @@ describe('AuthController', () => {
 			'12345678',
 			'Santiago',
 			new Date('2000-01-01'),
+			undefined,
 		);
 		expect(result).toEqual({ usuario: { id: 2 } });
 	});
@@ -109,5 +113,32 @@ describe('AuthController', () => {
 
 		expect(authService.restablecerContrasena).toHaveBeenCalledWith('token-123', 'Nueva1234');
 		expect(result).toEqual({ mensaje: 'Contraseña restablecida correctamente' });
+	});
+
+	it('renovar: delega en AuthService', async () => {
+		authService.renovar.mockResolvedValue({ token: 'jwt', refreshToken: 'rt', usuario: { id: 1 } } as any);
+
+		const result = await controller.renovar({ refreshToken: 'rt-viejo' });
+
+		expect(authService.renovar).toHaveBeenCalledWith('rt-viejo');
+		expect(result).toEqual({ token: 'jwt', refreshToken: 'rt', usuario: { id: 1 } });
+	});
+
+	it('cerrarSesion: delega en AuthService con id de usuario', async () => {
+		authService.cerrarSesion.mockResolvedValue({ mensaje: 'Sesión cerrada correctamente' });
+
+		const result = await controller.cerrarSesion({ id: 1 } as any, { refreshToken: 'rt' });
+
+		expect(authService.cerrarSesion).toHaveBeenCalledWith('rt', 1);
+		expect(result).toEqual({ mensaje: 'Sesión cerrada correctamente' });
+	});
+
+	it('completarRegistro: delega en AuthService con id de usuario', async () => {
+		authService.completarRegistro.mockResolvedValue({ usuario: { id: 1, rol: 'normal' } } as any);
+
+		const result = await controller.completarRegistro({ id: 1 } as any);
+
+		expect(authService.completarRegistro).toHaveBeenCalledWith(1);
+		expect(result).toEqual({ usuario: { id: 1, rol: 'normal' } });
 	});
 });

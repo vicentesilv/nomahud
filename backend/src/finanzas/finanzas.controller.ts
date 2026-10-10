@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { PaginacionDto } from '../common/dtos/paginacion.dto';
 import { FinanzasService } from './finanzas.service';
 import { CrearTransaccionDto } from './dtos/crear-transaccion.dto';
 import { ActualizarTransaccionDto } from './dtos/actualizar-transaccion.dto';
@@ -17,8 +18,8 @@ export class FinanzasController {
     }
 
     @Get()
-    async findAll(@User() usuario: Usuario) {
-        return this.finanzasService.findAll(usuario.id);
+    async findAll(@User() usuario: Usuario, @Query() pag: PaginacionDto) {
+        return this.finanzasService.findAll(usuario.id, pag);
     }
 
     @Get('resumen')

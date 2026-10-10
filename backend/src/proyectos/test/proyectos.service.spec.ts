@@ -1,15 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { ProyectosService } from '../proyectos.service';
 import { Proyecto } from '../entities/proyecto.entity';
+import { ProyectoMiembro } from '../entities/proyecto-miembro.entity';
+import { ProyectoInvitacion } from '../entities/proyecto-invitacion.entity';
+import { Usuario } from '../../usuarios/entitys/usuarios.entity';
 import { FinanzasService } from '../../finanzas/finanzas.service';
+import { MailService } from '../../mail/mail.service';
 
 describe('ProyectosService', () => {
   let service: ProyectosService;
   let repo: jest.Mocked<{
     create: jest.Mock;
     find: jest.Mock;
+    findAndCount: jest.Mock;
     findOne: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
@@ -26,6 +32,7 @@ describe('ProyectosService', () => {
           useValue: {
             create: jest.fn(),
             find: jest.fn(),
+            findAndCount: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
@@ -37,6 +44,26 @@ describe('ProyectosService', () => {
           useValue: {
             create: jest.fn(),
           },
+        },
+        {
+          provide: getRepositoryToken(ProyectoMiembro),
+          useValue: { findOne: jest.fn(), create: jest.fn((x) => x), save: jest.fn(), remove: jest.fn() },
+        },
+        {
+          provide: getRepositoryToken(ProyectoInvitacion),
+          useValue: { findOne: jest.fn(), create: jest.fn(), save: jest.fn(), delete: jest.fn() },
+        },
+        {
+          provide: getRepositoryToken(Usuario),
+          useValue: { findOne: jest.fn() },
+        },
+        {
+          provide: MailService,
+          useValue: { sendMail: jest.fn().mockResolvedValue(true) },
+        },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn(() => 'http://localhost:3000') },
         },
       ],
     }).compile();
@@ -59,16 +86,18 @@ describe('ProyectosService', () => {
 
   it('findAll: retorna proyectos del usuario', async () => {
     const proyectos = [{ id: 1, nombre: 'P1' }] as Proyecto[];
-    repo.find.mockResolvedValue(proyectos);
+    repo.findAndCount.mockResolvedValue([proyectos, 1]);
 
     const result = await service.findAll(1);
 
-    expect(repo.find).toHaveBeenCalledWith({
-      where: { creadorId: 1 },
+    expect(repo.findAndCount).toHaveBeenCalledWith({
+      where: [{ creadorId: 1 }, { miembros: { usuarioId: 1 } }],
       order: { updatedAt: 'DESC' },
-      relations: ['tareas', 'clienteRel'],
+      relations: ['tareas', 'clienteRel', 'miembros', 'miembros.usuario'],
+      skip: 0,
+      take: 20,
     });
-    expect(result).toBe(proyectos);
+    expect(result).toEqual({ datos: proyectos, total: 1, pagina: 1, limite: 20 });
   });
 
   it('findOne: retorna proyecto si existe', async () => {
@@ -123,5 +152,129 @@ describe('ProyectosService', () => {
     await service.remove(1, 1);
 
     expect(repo.remove).toHaveBeenCalledWith(proyecto);
+  });
+
+  it('findOne: retorna proyecto compartido a miembro', async () => {
+    repo.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 1, creadorId: 9 } as Proyecto);
+    const miembroRepo = service['miembroRepository'] as unknown as { findOne: jest.Mock };
+    jest.spyOn(service, 'rolEnProyecto').mockResolvedValue('lector');
+
+    const result = await service.findOne(1, 5);
+
+    expect(result.creadorId).toBe(9);
+    expect(miembroRepo.findOne).not.toHaveBeenCalled();
+  });
+
+  it('update: lector no puede editar proyecto ajeno', async () => {
+    repo.findOne.mockResolvedValue(null);
+    jest.spyOn(service, 'rolEnProyecto').mockResolvedValue('lector');
+
+    await expect(service.update(1, 5, { nombre: 'X' } as any)).rejects.toThrow();
+  });
+
+  it('invitarMiembro: crea invitación y envía correo', async () => {
+    const proyecto = { id: 1, creadorId: 1, nombre: 'P1' } as Proyecto;
+    repo.findOne.mockResolvedValue(proyecto);
+    const usuarioRepo = service['usuarioRepository'] as unknown as { findOne: jest.Mock };
+    usuarioRepo.findOne.mockResolvedValue(null);
+    const invRepo = service['invitacionRepository'] as unknown as { delete: jest.Mock; create: jest.Mock; save: jest.Mock };
+    invRepo.delete.mockResolvedValue(undefined);
+    invRepo.create.mockReturnValue({ id: 1 });
+    invRepo.save.mockResolvedValue({ id: 1 });
+    const mail = service['mailService'] as unknown as { sendMail: jest.Mock };
+
+    const result = await service.invitarMiembro(1, 1, { email: 'nuevo@mail.com', rol: 'editor' });
+
+    expect(invRepo.save).toHaveBeenCalled();
+    expect(mail.sendMail).toHaveBeenCalledWith(
+      'nuevo@mail.com',
+      expect.stringContaining('P1'),
+      expect.any(String),
+      expect.objectContaining({ rol: 'editor' }),
+    );
+    expect(result.mensaje).toContain('nuevo@mail.com');
+  });
+
+  it('aceptarInvitacion: crea miembro y marca uso', async () => {
+    const invRepo = service['invitacionRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock };
+    invRepo.findOne.mockResolvedValue({
+      id: 7,
+      proyectoId: 1,
+      email: 'nuevo@mail.com',
+      rol: 'editor',
+      usadoEn: null,
+      expiraEn: new Date(Date.now() + 864e5),
+      proyecto: { nombre: 'P1' },
+    });
+    const usuarioRepo = service['usuarioRepository'] as unknown as { findOne: jest.Mock };
+    usuarioRepo.findOne.mockResolvedValue({ id: 5, correo: 'nuevo@mail.com' });
+    const miembroRepo = service['miembroRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock };
+    miembroRepo.findOne.mockResolvedValue(null);
+    miembroRepo.save.mockResolvedValue({ id: 1 });
+    invRepo.save.mockResolvedValue({});
+
+    const result = await service.aceptarInvitacion('token-crudo', 5);
+
+    expect(miembroRepo.save).toHaveBeenCalledWith(expect.objectContaining({ proyectoId: 1, usuarioId: 5 }));
+    expect(invRepo.save).toHaveBeenCalledWith(expect.objectContaining({ usadoEn: expect.any(Date) }));
+    expect(result).toEqual({ id: 1, nombre: 'P1' });
+  });
+
+  it('aceptarInvitacion: sin login usa el correo de la invitación', async () => {
+    const invRepo = service['invitacionRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock };
+    invRepo.findOne.mockResolvedValue({
+      id: 7,
+      proyectoId: 1,
+      email: 'nuevo@mail.com',
+      rol: 'lector',
+      usadoEn: null,
+      expiraEn: new Date(Date.now() + 864e5),
+      proyecto: { nombre: 'P1' },
+    });
+    const usuarioRepo = service['usuarioRepository'] as unknown as { findOne: jest.Mock };
+    usuarioRepo.findOne.mockResolvedValue({ id: 5, correo: 'nuevo@mail.com' });
+    const miembroRepo = service['miembroRepository'] as unknown as { findOne: jest.Mock; save: jest.Mock };
+    miembroRepo.findOne.mockResolvedValue(null);
+    miembroRepo.save.mockResolvedValue({ id: 1 });
+    invRepo.save.mockResolvedValue({});
+
+    const result = await service.aceptarInvitacion('token-crudo');
+
+    expect(usuarioRepo.findOne).toHaveBeenCalledWith({ where: { correo: 'nuevo@mail.com' } });
+    expect(result).toEqual({ id: 1, nombre: 'P1' });
+  });
+
+  it('aceptarInvitacion: sin cuenta pide registrarse', async () => {
+    const invRepo = service['invitacionRepository'] as unknown as { findOne: jest.Mock };
+    invRepo.findOne.mockResolvedValue({
+      id: 7,
+      proyectoId: 1,
+      email: 'nadie@mail.com',
+      rol: 'lector',
+      usadoEn: null,
+      expiraEn: new Date(Date.now() + 864e5),
+      proyecto: { nombre: 'P1' },
+    });
+    const usuarioRepo = service['usuarioRepository'] as unknown as { findOne: jest.Mock };
+    usuarioRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.aceptarInvitacion('token-crudo')).rejects.toThrow('registrate primero');
+  });
+
+  it('vistaPreviaInvitacion: muestra datos públicos', async () => {
+    const invRepo = service['invitacionRepository'] as unknown as { findOne: jest.Mock };
+    invRepo.findOne.mockResolvedValue({
+      email: 'nuevo@mail.com',
+      rol: 'editor',
+      usadoEn: null,
+      expiraEn: new Date(Date.now() + 864e5),
+      proyecto: { nombre: 'P1' },
+    });
+
+    const result = await service.vistaPreviaInvitacion('token-crudo');
+
+    expect(result).toEqual(expect.objectContaining({ proyectoNombre: 'P1', email: 'nuevo@mail.com', rol: 'editor' }));
   });
 });

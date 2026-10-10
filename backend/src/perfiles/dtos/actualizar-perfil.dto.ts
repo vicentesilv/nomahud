@@ -1,5 +1,5 @@
-import { Transform } from 'class-transformer';
-import { IsArray, IsEnum, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class ActualizarPerfilDto {
     @IsOptional()
@@ -50,4 +50,9 @@ export class ActualizarPerfilDto {
     @IsString()
     @MaxLength(10)
     monedaPreferida?: string;
+
+    @IsOptional()
+    @Type(() => Boolean)
+    @IsBoolean()
+    notificacionesEmail?: boolean;
 }

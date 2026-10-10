@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { PaginacionDto } from '../common/dtos/paginacion.dto';
 import { TareasService } from './tareas.service';
 import { CrearTareaDto } from './dtos/crear-tarea.dto';
 import { ActualizarTareaDto } from './dtos/actualizar-tarea.dto';
@@ -16,8 +17,8 @@ export class TareasController {
     }
 
     @Get()
-    async findAll(@User('id') userId: number) {
-        return this.tareasService.findAll(userId);
+    async findAll(@User('id') userId: number, @Query() pag: PaginacionDto) {
+        return this.tareasService.findAll(userId, pag);
     }
 
     @Get('proyecto/:proyectoId')

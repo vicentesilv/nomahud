@@ -31,4 +31,9 @@ export class RegisterDto {
   @Type(() => Date)
   @IsDate()
   fechaNacimiento?: Date;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  invitacionToken?: string;
 }

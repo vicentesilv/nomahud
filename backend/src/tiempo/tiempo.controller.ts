@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { PaginacionDto } from '../common/dtos/paginacion.dto';
 import { TiempoService } from './tiempo.service';
 import { CrearRegistroTiempoDto } from './dtos/crear-registro-tiempo.dto';
 import { ActualizarRegistroTiempoDto } from './dtos/actualizar-registro-tiempo.dto';
@@ -17,8 +18,8 @@ export class TiempoController {
     }
 
     @Get()
-    async findAll(@User() usuario: Usuario) {
-        return this.tiempoService.findAll(usuario.id);
+    async findAll(@User() usuario: Usuario, @Query() pag: PaginacionDto) {
+        return this.tiempoService.findAll(usuario.id, pag);
     }
 
     @Get('resumen')

@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { PaginacionDto } from '../common/dtos/paginacion.dto';
 import { ViajesService } from './viajes.service';
 import { CrearViajeDto } from './dtos/crear-viaje.dto';
 import { ActualizarViajeDto } from './dtos/actualizar-viaje.dto';
@@ -19,8 +20,8 @@ export class ViajesController {
     }
 
     @Get()
-    async findAll(@User() usuario: Usuario) {
-        return this.viajesService.findAll(usuario.id);
+    async findAll(@User() usuario: Usuario, @Query() pag: PaginacionDto) {
+        return this.viajesService.findAll(usuario.id, pag);
     }
 
     @Get(':id')

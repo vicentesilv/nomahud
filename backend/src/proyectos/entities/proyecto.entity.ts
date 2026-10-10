@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, Pri
 import { Usuario } from '../../usuarios/entitys/usuarios.entity';
 import { Cliente } from '../../clientes/entities/cliente.entity';
 import { Tarea } from '../../tareas/entities/tarea.entity';
+import { ProyectoMiembro } from './proyecto-miembro.entity';
 
 export type EstadoProyecto = 'activo' | 'completado' | 'en_pausa' | 'cancelado';
 export type Prioridad = 'baja' | 'media' | 'alta' | 'critica';
@@ -59,6 +60,9 @@ export class Proyecto {
 
     @OneToMany(() => Tarea, (tarea) => tarea.proyecto)
     tareas: Tarea[];
+
+    @OneToMany(() => ProyectoMiembro, (miembro) => miembro.proyecto)
+    miembros: ProyectoMiembro[];
 
     @CreateDateColumn({ type: 'datetime' })
     createdAt: Date;

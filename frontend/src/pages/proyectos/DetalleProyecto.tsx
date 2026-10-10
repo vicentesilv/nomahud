@@ -1,6 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import EquipoProyecto from '../../components/EquipoProyecto';
 
 interface Tarea {
   id: number;
@@ -28,6 +30,8 @@ interface Proyecto {
   fechaFin: string;
   tareas: Tarea[];
   createdAt: string;
+  creadorId: number;
+  miembros?: { id: number; usuarioId: number; rol: string }[];
 }
 
 const ESTADOS_PROYECTO: Record<string, string> = {
@@ -111,6 +115,7 @@ const PRIORIDAD_ESTILO = (p: string) => ({
 export default function DetalleProyecto() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -226,6 +231,9 @@ export default function DetalleProyecto() {
   if (!proyecto) return <div className="loading">Proyecto no encontrado</div>;
 
   const tareas = proyecto.tareas || [];
+  const esPropietario = usuario?.id === proyecto.creadorId;
+  const miRol = proyecto.miembros?.find((m) => m.usuarioId === usuario?.id)?.rol;
+  const puedeEditarTareas = esPropietario || miRol === 'editor';
   const tareasPorColumna = (estado: string) => tareas.filter((t) => t.estado === estado);
   const badgeEstado = proyecto.estado === 'activo' || proyecto.estado === 'completado' ? 'badge-success' : proyecto.estado === 'en_pausa' ? 'badge-warning' : 'badge-error';
 
@@ -251,22 +259,28 @@ export default function DetalleProyecto() {
           )}
         </div>
         <div className="proyecto-header-actions">
-          <button onClick={abrirEditarProyecto} className="btn-secondary btn-icon">
-            <IconEdit />
-            Editar
-          </button>
-          <button onClick={abrirFormNueva} className="btn-primary btn-icon">
-            <IconPlus />
-            Nueva tarea
-          </button>
+          {esPropietario && (
+            <button onClick={abrirEditarProyecto} className="btn-secondary btn-icon">
+              <IconEdit />
+              Editar
+            </button>
+          )}
+          {puedeEditarTareas && (
+            <button onClick={abrirFormNueva} className="btn-primary btn-icon">
+              <IconPlus />
+              Nueva tarea
+            </button>
+          )}
           <button onClick={() => navigate('/proyectos')} className="btn-secondary btn-icon">
             <IconArrowLeft />
             Volver
           </button>
-          <button onClick={eliminarProyecto} className="btn-secondary btn-icon" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)' }}>
-            <IconTrash />
-            Eliminar
-          </button>
+          {esPropietario && (
+            <button onClick={eliminarProyecto} className="btn-secondary btn-icon" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)' }}>
+              <IconTrash />
+              Eliminar
+            </button>
+          )}
         </div>
       </div>
 
@@ -301,6 +315,8 @@ export default function DetalleProyecto() {
         </div>
       </div>
 
+      <EquipoProyecto proyectoId={Number(id)} puedeGestionar={esPropietario} />
+
       <div className="proyecto-tareas-header">
         <h2>Tareas</h2>
         <div className="proyecto-tareas-actions">
@@ -320,10 +336,12 @@ export default function DetalleProyecto() {
               <IconList />
             </button>
           </div>
-          <button onClick={abrirFormNueva} className="btn-primary btn-icon">
-            <IconPlus />
-            Nueva tarea
-          </button>
+          {puedeEditarTareas && (
+            <button onClick={abrirFormNueva} className="btn-primary btn-icon">
+              <IconPlus />
+              Nueva tarea
+            </button>
+          )}
         </div>
       </div>
 
