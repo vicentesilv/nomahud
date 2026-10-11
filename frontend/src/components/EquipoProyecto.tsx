@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface Miembro {
   id: number;
@@ -48,6 +49,7 @@ function IconSend() {
 }
 
 export default function EquipoProyecto({ proyectoId, puedeGestionar = false }: { proyectoId: number; puedeGestionar?: boolean }) {
+  const { confirm, dialog } = useConfirm();
   const [equipo, setEquipo] = useState<Equipo | null>(null);
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState<'editor' | 'lector'>('editor');
@@ -79,7 +81,13 @@ export default function EquipoProyecto({ proyectoId, puedeGestionar = false }: {
   };
 
   const expulsar = async (usuarioId: number, nombre: string) => {
-    if (!confirm(`¿Quitar a ${nombre} del proyecto?`)) return;
+    const ok = await confirm({
+      titulo: 'Quitar miembro',
+      mensaje: `¿Quitar a ${nombre} del proyecto? Perderá acceso inmediatamente.`,
+      confirmarTexto: 'Quitar',
+      peligroso: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/proyectos/${proyectoId}/miembros/${usuarioId}`);
       cargar();
@@ -178,6 +186,7 @@ export default function EquipoProyecto({ proyectoId, puedeGestionar = false }: {
         )
       )}
       {msg && <p className="equipo-msg">{msg}</p>}
+      {dialog}
     </section>
   );
 }

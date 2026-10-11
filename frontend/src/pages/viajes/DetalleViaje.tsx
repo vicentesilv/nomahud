@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
+import { useConfirm } from '../../hooks/useConfirm';
 
 interface ItinerarioItem {
   id: number;
@@ -100,6 +101,7 @@ function IconPlus() {
 }
 
 export default function DetalleViaje() {
+  const { confirm, dialog } = useConfirm();
   const { formatear } = useDivisa();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -169,7 +171,13 @@ export default function DetalleViaje() {
   };
 
   const eliminar = async () => {
-    if (!confirm('¿Eliminar este viaje?')) return;
+    const ok = await confirm({
+      titulo: 'Eliminar viaje',
+      mensaje: '¿Eliminar este viaje? Esta acción no se puede deshacer.',
+      confirmarTexto: 'Eliminar',
+      peligroso: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/viajes/${id}`);
       navigate('/viajes');
@@ -195,7 +203,13 @@ export default function DetalleViaje() {
   };
 
   const eliminarItem = async (itemId: number) => {
-    if (!confirm('¿Eliminar este lugar?')) return;
+    const ok = await confirm({
+      titulo: 'Eliminar lugar',
+      mensaje: '¿Eliminar este lugar del itinerario?',
+      confirmarTexto: 'Eliminar',
+      peligroso: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/viajes/${id}/itinerario/${itemId}`);
       cargarViaje();
@@ -423,6 +437,7 @@ export default function DetalleViaje() {
           </div>
         </form>
       )}
+      {dialog}
     </div>
   );
 }

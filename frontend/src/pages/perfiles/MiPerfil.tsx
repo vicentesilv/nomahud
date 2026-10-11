@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import api, { resolvePublicUrl } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfirm } from '../../hooks/useConfirm';
 
 interface Perfil {
   id: number;
@@ -135,6 +136,7 @@ function IconAlert() {
 
 export default function MiPerfil() {
   const { usuario, refreshUsuario } = useAuth();
+  const { confirm, dialog } = useConfirm();
   const [completando, setCompletando] = useState(false);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [editando, setEditando] = useState(false);
@@ -233,10 +235,15 @@ export default function MiPerfil() {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (formTocado) {
-      const confirmar = window.confirm('Tenés cambios sin guardar. ¿Estás seguro de querer salir?');
-      if (!confirmar) return;
+      const ok = await confirm({
+        titulo: 'Cambios sin guardar',
+        mensaje: 'Tenés cambios sin guardar. ¿Estás seguro de querer salir?',
+        confirmarTexto: 'Salir',
+        peligroso: false,
+      });
+      if (!ok) return;
     }
     setEditando(false);
     setMsg({ text: '', type: '' });
@@ -245,7 +252,13 @@ export default function MiPerfil() {
   };
 
   const completarRegistro = async () => {
-    if (!confirm('¿Completar tu registro? Tu cuenta pasará a normal con acceso a todas las funciones.')) return;
+    const ok = await confirm({
+      titulo: 'Completar registro',
+      mensaje: 'Tu cuenta pasará a normal con acceso a todas las funciones.',
+      confirmarTexto: 'Completar',
+      peligroso: false,
+    });
+    if (!ok) return;
     setCompletando(true);
     try {
       await api.post('/auth/completar-registro');
@@ -764,6 +777,7 @@ export default function MiPerfil() {
           </div>
         </form>
       )}
+      {dialog}
     </div>
   );
 }

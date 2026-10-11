@@ -1,7 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { backendUrl } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfirm } from '../../hooks/useConfirm';
 import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
 import EquipoProyecto from '../../components/EquipoProyecto';
 
@@ -61,10 +62,18 @@ function IconArrowLeft() {
   );
 }
 
-function IconPlus() {
+function IconDownload() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function IconDots() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
     </svg>
   );
 }
@@ -116,11 +125,14 @@ const PRIORIDAD_ESTILO = (p: string) => ({
 });
 
 export default function DetalleProyecto() {
+  const { confirm, dialog } = useConfirm();
   const { id } = useParams();
   const navigate = useNavigate();
   const { usuario } = useAuth();
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState({ text: '', type: '' as '' | 'success' | 'error' });
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editandoTarea, setEditandoTarea] = useState<Tarea | null>(null);
   const [tareaForm, setTareaForm] = useState({ titulo: '', descripcion: '', prioridad: 'media', fechaVencimiento: '', estimacionHoras: '' });
@@ -201,7 +213,13 @@ export default function DetalleProyecto() {
   const [tareaArrastrando, setTareaArrastrando] = useState<number | null>(null);
 
   const eliminarTarea = async (tareaId: number) => {
-    if (!confirm('¿Eliminar esta tarea?')) return;
+    const ok = await confirm({
+      titulo: 'Eliminar tarea',
+      mensaje: '¿Eliminar esta tarea? Esta acción no se puede deshacer.',
+      confirmarTexto: 'Eliminar',
+      peligroso: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/tareas/${tareaId}`);
       cargarProyecto();
@@ -209,7 +227,13 @@ export default function DetalleProyecto() {
   };
 
   const eliminarProyecto = async () => {
-    if (!confirm('¿Eliminar este proyecto? Se eliminarán todas sus tareas.')) return;
+    const ok = await confirm({
+      titulo: 'Eliminar proyecto',
+      mensaje: '¿Eliminar este proyecto? Se eliminarán todas sus tareas.',
+      confirmarTexto: 'Eliminar',
+      peligroso: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/proyectos/${id}`);
       navigate('/proyectos');
@@ -223,6 +247,28 @@ export default function DetalleProyecto() {
       moneda: proyecto?.moneda || 'USD',
     });
     setShowProyectoForm(true);
+  };
+
+  const exportarPDF = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(backendUrl(`/reportes/proyecto/${id}/pdf`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('No se pudo generar el reporte');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte-proyecto-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setMsg({ text: 'Reporte PDF descargado', type: 'success' });
+    } catch {
+      setMsg({ text: 'No se pudo generar el reporte', type: 'error' });
+    }
   };
 
   const guardarProyecto = async (e: FormEvent) => {
@@ -240,6 +286,19 @@ export default function DetalleProyecto() {
   if (!proyecto) return <div className="loading">Proyecto no encontrado</div>;
 
   const tareas = proyecto.tareas || [];
+
+  if (msg.text) {
+    return (
+      <div className="page-tareas">
+        <div className={`msg-floating ${msg.type}`} style={{ position: 'static', marginBottom: '1rem', textAlign: 'center' }}>
+          {msg.type === 'success' ? '✓' : '✕'} {msg.text}
+        </div>
+        <button onClick={() => setMsg({ text: '', type: '' })} className="btn-secondary" style={{ width: 'auto' }}>
+          Cerrar
+        </button>
+      </div>
+    );
+  }
   const esPropietario = usuario?.id === proyecto.creadorId;
   const miRol = proyecto.miembros?.find((m) => m.usuarioId === usuario?.id)?.rol;
   const puedeEditarTareas = esPropietario || miRol === 'editor';
@@ -269,27 +328,44 @@ export default function DetalleProyecto() {
         </div>
         <div className="proyecto-header-actions">
           {esPropietario && (
-            <button onClick={abrirEditarProyecto} className="btn-secondary btn-icon">
-              <IconEdit />
-              Editar
-            </button>
-          )}
-          {puedeEditarTareas && (
-            <button onClick={abrirFormNueva} className="btn-primary btn-icon">
-              <IconPlus />
-              Nueva tarea
-            </button>
+            <div className="dropdown">
+              <button
+                className="btn-secondary btn-icon"
+                onClick={() => setMenuAbierto(!menuAbierto)}
+                aria-haspopup="true"
+                aria-expanded={menuAbierto}
+                title="Acciones del proyecto"
+              >
+                <IconDots />
+                Acciones
+              </button>
+              {menuAbierto && (
+                <button
+                  className="dropdown-overlay"
+                  onClick={() => setMenuAbierto(false)}
+                  aria-label="Cerrar menú"
+                  tabIndex={-1}
+                />
+              )}
+              {menuAbierto && (
+                <div className="dropdown-menu" role="menu">
+                  <button className="dropdown-item" onClick={() => { setMenuAbierto(false); abrirEditarProyecto(); }} role="menuitem">
+                    <IconEdit /> Editar
+                  </button>
+                  <button className="dropdown-item" onClick={() => { setMenuAbierto(false); exportarPDF(); }} role="menuitem">
+                    <IconDownload /> Exportar PDF
+                  </button>
+                  <button className="dropdown-item dropdown-item-danger" onClick={() => { setMenuAbierto(false); eliminarProyecto(); }} role="menuitem">
+                    <IconTrash /> Eliminar
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           <button onClick={() => navigate('/proyectos')} className="btn-secondary btn-icon">
             <IconArrowLeft />
             Volver
           </button>
-          {esPropietario && (
-            <button onClick={eliminarProyecto} className="btn-secondary btn-icon" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)' }}>
-              <IconTrash />
-              Eliminar
-            </button>
-          )}
         </div>
       </div>
 
@@ -325,6 +401,7 @@ export default function DetalleProyecto() {
       </div>
 
       <EquipoProyecto proyectoId={Number(id)} puedeGestionar={esPropietario} />
+      {dialog}
 
       <div className="proyecto-tareas-header">
         <h2>Tareas</h2>
@@ -345,12 +422,6 @@ export default function DetalleProyecto() {
               <IconList />
             </button>
           </div>
-          {puedeEditarTareas && (
-            <button onClick={abrirFormNueva} className="btn-primary btn-icon">
-              <IconPlus />
-              Nueva tarea
-            </button>
-          )}
         </div>
       </div>
 
@@ -375,8 +446,21 @@ export default function DetalleProyecto() {
               >
                 <div className="kanban-columna-header">
                   <span className="kanban-columna-titulo">{col.label}</span>
-                  <span className="kanban-columna-count">{colTareas.length}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span className="kanban-columna-count">{colTareas.length}</span>
+                    {col.key === 'pendiente' && puedeEditarTareas && (
+                      <button
+                        className="kanban-add-btn"
+                        onClick={abrirFormNueva}
+                        title="Nueva tarea"
+                        aria-label="Nueva tarea"
+                      >
+                        +
+                      </button>
+                    )}
+                  </span>
                 </div>
+                <div className="kanban-columna-tareas">
                 {colTareas.length === 0 ? (
                   <p className="kanban-columna-empty">{puedeEditarTareas ? 'Arrastrá tareas aquí' : 'Sin tareas'}</p>
                 ) : (
@@ -439,6 +523,7 @@ export default function DetalleProyecto() {
                     );
                   })
                 )}
+                </div>
                 {col.key === 'pendiente' && tareas.length > 0 && (
                   <div className="kanban-progress">
                     <div className="kanban-progress-bar">
@@ -495,6 +580,11 @@ export default function DetalleProyecto() {
               );
             })
           )}
+            {puedeEditarTareas && (
+              <button className="tareas-lista-add" onClick={abrirFormNueva}>
+                + Nueva tarea
+              </button>
+            )}
         </div>
       )}
 

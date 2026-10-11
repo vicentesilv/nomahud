@@ -15,6 +15,7 @@ import { ProyectoMiembro } from '../proyectos/entities/proyecto-miembro.entity';
 import { MailModule } from '../mail/mail.module';
 import { PerfilesModule } from '../perfiles/perfiles.module';
 import { AuthTokensCleanupJob } from '../common/jobs/auth-tokens-cleanup.job';
+import { RefreshTokensCleanupJob } from '../common/jobs/refresh-tokens-cleanup.job';
 
 @Module({
   imports: [
@@ -34,7 +35,7 @@ import { AuthTokensCleanupJob } from '../common/jobs/auth-tokens-cleanup.job';
     PerfilesModule,
     TypeOrmModule.forFeature([AuthToken, RefreshToken, ProyectoInvitacion, ProyectoMiembro]),
   ],
-  providers: [AuthService, JwtAuthGuard, JwtStrategy, AuthTokensCleanupJob],
+  providers: [AuthService, JwtAuthGuard, JwtStrategy, AuthTokensCleanupJob, RefreshTokensCleanupJob],
   controllers: [AuthController],
   exports: [JwtModule],
 })

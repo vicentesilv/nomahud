@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import api, { backendUrl, extraerLista } from '../../services/api';
+import { useConfirm } from '../../hooks/useConfirm';
 import VisorDocumentos from './VisorDocumentos';
 import mammoth from 'mammoth/mammoth.browser.js';
 import * as XLSX from 'xlsx';
@@ -67,6 +68,7 @@ function iconoDocumento(mime: string, ext: string) {
 }
 
 export default function ListaDocumentos() {
+  const { confirm, dialog } = useConfirm();
   const [docs, setDocs] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
@@ -120,7 +122,13 @@ export default function ListaDocumentos() {
   };
 
   const eliminar = async (id: number) => {
-    if (!confirm('¿Eliminar este documento?')) return;
+    const ok = await confirm({
+      titulo: 'Eliminar documento',
+      mensaje: '¿Eliminar este documento? Esta acción no se puede deshacer.',
+      confirmarTexto: 'Eliminar',
+      peligroso: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/documentos/${id}`);
       cargar();
@@ -394,6 +402,7 @@ export default function ListaDocumentos() {
           })}
         </div>
       )}
+      {dialog}
     </div>
     )}
 

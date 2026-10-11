@@ -13,6 +13,7 @@ import ListaProyectos from './pages/proyectos/ListaProyectos';
 import NuevoProyecto from './pages/proyectos/NuevoProyecto';
 import DetalleProyecto from './pages/proyectos/DetalleProyecto';
 import AceptarInvitacion from './pages/proyectos/AceptarInvitacion';
+import ProyectoPublico from './pages/proyectos/ProyectoPublico';
 import ListaClientes from './pages/clientes/ListaClientes';
 import NuevoCliente from './pages/clientes/NuevoCliente';
 import DetalleCliente from './pages/clientes/DetalleCliente';
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
           <Route path="/confirmar-cuenta" element={<ConfirmarCuenta />} />
           <Route path="/proyectos/invitacion" element={<AceptarInvitacion />} />
+          <Route path="/proyecto-publico" element={<ProyectoPublico />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<ListaDashboard />} />

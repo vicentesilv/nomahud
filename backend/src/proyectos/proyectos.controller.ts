@@ -71,4 +71,8 @@ export class ProyectosController {
         return { mensaje: `Rol actualizado a ${dto.rol}` };
     }
 
+    @Post(':id/link-publico')
+    async crearLinkPublico(@User() usuario: Usuario, @Param('id', ParseIntPipe) id: number) {
+        return this.proyectosService.crearLinkPublico(id, usuario.id);
+    }
 }

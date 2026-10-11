@@ -250,12 +250,15 @@ export default function ListaTareas() {
                         background: 'var(--surface, #1a1a1a)', borderRadius: '10px', padding: '0.6rem',
                         border: colArrastrada === estado ? '2px dashed var(--accent)' : '1px solid var(--border)',
                         minHeight: '200px',
+                        maxHeight: 'min(560px, calc(100vh - 300px))',
+                        display: 'flex', flexDirection: 'column',
                       }}
                     >
                       <div className="tareas-group-header" style={{ marginBottom: '0.5rem' }}>
                         <span className={`badge ${ESTADO_BADGE[estado]}`}>{ESTADO_LABEL[estado]}</span>
                         <span className="tareas-group-count">{delEstado.length}</span>
                       </div>
+                      <div className="kanban-columna-tareas">
                       {delEstado.map((t) => (
                         <div
                           key={t.id}
@@ -277,6 +280,7 @@ export default function ListaTareas() {
                       {delEstado.length === 0 && (
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>Soltá tareas aquí</p>
                       )}
+                      </div>
                     </div>
                   );
                 })}

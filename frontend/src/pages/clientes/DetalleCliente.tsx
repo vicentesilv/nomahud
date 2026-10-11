@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useConfirm } from '../../hooks/useConfirm';
 
 interface Cliente {
   id: number;
@@ -76,6 +77,7 @@ function initiales(nombre: string) {
 const COLORS = ['#7c3aed', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6'];
 
 export default function DetalleCliente() {
+  const { confirm, dialog } = useConfirm();
   const { id } = useParams();
   const navigate = useNavigate();
   const [cliente, setCliente] = useState<Cliente | null>(null);
@@ -120,7 +122,13 @@ export default function DetalleCliente() {
   };
 
   const eliminar = async () => {
-    if (!confirm('¿Eliminar este cliente?')) return;
+    const ok = await confirm({
+      titulo: 'Eliminar cliente',
+      mensaje: '¿Eliminar este cliente? Esta acción no se puede deshacer.',
+      confirmarTexto: 'Eliminar',
+      peligroso: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/clientes/${id}`);
       navigate('/clientes');
@@ -248,6 +256,7 @@ export default function DetalleCliente() {
           </div>
         </form>
       )}
+      {dialog}
     </div>
   );
 }

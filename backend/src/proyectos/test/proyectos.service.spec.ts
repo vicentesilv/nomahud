@@ -6,6 +6,7 @@ import { ProyectosService } from '../proyectos.service';
 import { Proyecto } from '../entities/proyecto.entity';
 import { ProyectoMiembro } from '../entities/proyecto-miembro.entity';
 import { ProyectoInvitacion } from '../entities/proyecto-invitacion.entity';
+import { ProyectoComparticion } from '../entities/proyecto-comparticion.entity';
 import { Usuario } from '../../usuarios/entitys/usuarios.entity';
 import { FinanzasService } from '../../finanzas/finanzas.service';
 import { MailService } from '../../mail/mail.service';
@@ -52,6 +53,10 @@ describe('ProyectosService', () => {
         {
           provide: getRepositoryToken(ProyectoInvitacion),
           useValue: { findOne: jest.fn(), create: jest.fn(), save: jest.fn(), delete: jest.fn() },
+        },
+        {
+          provide: getRepositoryToken(ProyectoComparticion),
+          useValue: { findOne: jest.fn(), create: jest.fn((x) => x), save: jest.fn() },
         },
         {
           provide: getRepositoryToken(Usuario),
@@ -302,5 +307,67 @@ describe('ProyectosService', () => {
     const result = await service.vistaPreviaInvitacion('token-crudo');
 
     expect(result).toEqual(expect.objectContaining({ proyectoNombre: 'P1', email: 'nuevo@mail.com', rol: 'editor' }));
+  });
+
+  it('crearLinkPublico: genera URL con token', async () => {
+    repo.findOne.mockResolvedValue({ id: 1, creadorId: 1 } as Proyecto);
+    const compRepo = service['comparticionRepository'] as unknown as { create: jest.Mock; save: jest.Mock };
+    compRepo.create.mockReturnValue({ id: 1 });
+    compRepo.save.mockResolvedValue({ id: 1 });
+    const config = service['configService'] as unknown as { get: jest.Mock };
+    config.get.mockReturnValue('http://localhost:3000');
+
+    const result = await service.crearLinkPublico(1, 1);
+
+    expect(compRepo.save).toHaveBeenCalled();
+    expect(result.url).toContain('/proyecto-publico?token=');
+  });
+
+  it('crearLinkPublico: rechaza si no es propietario', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    await expect(service.crearLinkPublico(1, 9)).rejects.toThrow('Proyecto no encontrado');
+  });
+
+  it('obtenerPublicoPorToken: devuelve resumen público con progreso', async () => {
+    const compRepo = service['comparticionRepository'] as unknown as { findOne: jest.Mock };
+    compRepo.findOne.mockResolvedValue({
+      proyectoId: 1,
+      usadoEn: null,
+      expiraEn: new Date(Date.now() + 864e5),
+    });
+    repo.findOne.mockResolvedValue({
+      nombre: 'P1',
+      estado: 'activo',
+      prioridad: 'alta',
+      descripcion: 'desc',
+      moneda: 'USD',
+      ganancia: 1000,
+      clienteRel: { nombre: 'Cliente A' },
+      creador: { nombre: 'Dueño' },
+      tareas: [
+        { id: 1, titulo: 'T1', estado: 'completada', prioridad: 'alta', fechaVencimiento: null },
+        { id: 2, titulo: 'T2', estado: 'pendiente', prioridad: 'baja', fechaVencimiento: null },
+      ],
+    } as never);
+
+    const result = await service.obtenerPublicoPorToken('token-publico');
+
+    expect(result.progreso).toBe(50);
+    expect(result.totalTareas).toBe(2);
+    expect(result.tareasCompletadas).toBe(1);
+    expect(result.nombre).toBe('P1');
+  });
+
+  it('obtenerPublicoPorToken: rechaza token inválido, usado o expirado', async () => {
+    const compRepo = service['comparticionRepository'] as unknown as { findOne: jest.Mock };
+    compRepo.findOne.mockResolvedValueOnce(null);
+    await expect(service.obtenerPublicoPorToken('invalido')).rejects.toThrow('Enlace inválido');
+
+    compRepo.findOne.mockResolvedValueOnce({ proyectoId: 1, usadoEn: new Date(), expiraEn: new Date(Date.now() + 864e5) });
+    await expect(service.obtenerPublicoPorToken('usado')).rejects.toThrow('Enlace ya utilizado');
+
+    compRepo.findOne.mockResolvedValueOnce({ proyectoId: 1, usadoEn: null, expiraEn: new Date(Date.now() - 864e5) });
+    await expect(service.obtenerPublicoPorToken('expirado')).rejects.toThrow('Enlace expirado');
   });
 });

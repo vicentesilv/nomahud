@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Proyecto } from './entities/proyecto.entity';
 import { ProyectoMiembro, RolMiembro } from './entities/proyecto-miembro.entity';
 import { ProyectoInvitacion } from './entities/proyecto-invitacion.entity';
+import { ProyectoComparticion } from './entities/proyecto-comparticion.entity';
 import { Usuario } from '../usuarios/entitys/usuarios.entity';
 import { PaginacionDto, Pagina, paginar, skipTake } from '../common/dtos/paginacion.dto';
 import { CrearProyectoDto } from './dtos/crear-proyecto.dto';
@@ -25,6 +26,8 @@ export class ProyectosService {
         private readonly miembroRepository: Repository<ProyectoMiembro>,
         @InjectRepository(ProyectoInvitacion)
         private readonly invitacionRepository: Repository<ProyectoInvitacion>,
+        @InjectRepository(ProyectoComparticion)
+        private readonly comparticionRepository: Repository<ProyectoComparticion>,
         @InjectRepository(Usuario)
         private readonly usuarioRepository: Repository<Usuario>,
         @Inject(forwardRef(() => FinanzasService))
@@ -248,5 +251,64 @@ export class ProyectosService {
         const miembro = await this.miembroRepository.findOne({ where: { proyectoId, usuarioId: miembroUsuarioId } });
         if (!miembro) throw new NotFoundException('Miembro no encontrado');
         await this.miembroRepository.remove(miembro);
+    }
+
+    async crearLinkPublico(proyectoId: number, propietarioId: number): Promise<{ url: string }> {
+        const proyecto = await this.proyectoRepository.findOne({ where: { id: proyectoId, creadorId: propietarioId } });
+        if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiraEn = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await this.comparticionRepository.save(
+            this.comparticionRepository.create({
+                proyectoId,
+                tokenHash: crypto.createHash('sha256').update(token).digest('hex'),
+                expiraEn,
+            }),
+        );
+
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+        return { url: `${frontendUrl}/proyecto-publico?token=${token}` };
+    }
+
+    async obtenerPublicoPorToken(token: string) {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const comparticion = await this.comparticionRepository.findOne({ where: { tokenHash } });
+        if (!comparticion) throw new BadRequestException('Enlace inválido');
+        if (comparticion.usadoEn) throw new BadRequestException('Enlace ya utilizado');
+        if (comparticion.expiraEn.getTime() < Date.now()) throw new BadRequestException('Enlace expirado');
+
+        const proyecto = await this.proyectoRepository.findOne({
+            where: { id: comparticion.proyectoId },
+            relations: ['tareas', 'clienteRel', 'creador'],
+        });
+        if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+
+        const tareas = proyecto.tareas || [];
+        const completadas = tareas.filter((t) => t.estado === 'completada').length;
+        const progreso = tareas.length > 0 ? Math.round((completadas / tareas.length) * 100) : 0;
+
+        return {
+            nombre: proyecto.nombre,
+            descripcion: proyecto.descripcion,
+            estado: proyecto.estado,
+            prioridad: proyecto.prioridad,
+            cliente: proyecto.clienteRel?.nombre || proyecto.cliente,
+            creador: proyecto.creador?.nombre,
+            progreso,
+            totalTareas: tareas.length,
+            tareasCompletadas: completadas,
+            tareas: tareas.map((t) => ({
+                id: t.id,
+                titulo: t.titulo,
+                estado: t.estado,
+                prioridad: t.prioridad,
+                fechaVencimiento: t.fechaVencimiento,
+            })),
+            moneda: proyecto.moneda,
+            ganancia: proyecto.ganancia,
+            fechaInicio: proyecto.fechaInicio,
+            fechaFin: proyecto.fechaFin,
+        };
     }
 }
