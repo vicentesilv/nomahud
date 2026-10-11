@@ -144,7 +144,7 @@ export class AuthService {
         ciudad?: string,
         fechaNacimiento?: Date,
         invitacionToken?: string,
-    ): Promise<{ usuario: any; token?: string; refreshToken?: string }> {
+    ): Promise<{ usuario: any; token?: string; refreshToken?: string; advertencia?: string }> {
         const usuarioExistente = await this.usuariosService.findByEmail(correo);
 
         if (usuarioExistente) {
@@ -165,21 +165,20 @@ export class AuthService {
             fechaNacimiento,
         });
 
+        let advertencia: string | undefined;
         try {
             await this.sendEmailConfirmation(usuarioCreado as Usuario);
         } catch (error) {
-            const sinCorreo = !this.configService.get('BREVO_API_KEY') && !this.configService.get('SMTP_HOST');
-            if (sinCorreo && this.configService.get('NODE_ENV') !== 'production') {
-                this.logger.warn('Correo no configurado: cuenta pendiente, usa reenviar-confirmacion cuando configures BREVO_API_KEY');
-            } else {
-                throw error;
-            }
+            const mensaje = error instanceof Error ? error.message : String(error);
+            this.logger.error(`No se pudo enviar el correo de confirmación a ${correo}: ${mensaje}`);
+            advertencia = 'Cuenta creada, pero no pudimos enviarte el correo de confirmación. Usá "Reenviar confirmación" más tarde.';
         }
 
         await this.perfilesService.findOrCreate(usuarioCreado.id);
 
         return {
             usuario: usuarioCreado,
+            ...(advertencia ? { advertencia } : {}),
         };
     }
 
