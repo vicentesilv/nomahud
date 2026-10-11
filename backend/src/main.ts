@@ -14,18 +14,36 @@ async function bootstrap() {
   );
 
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const allowedOrigins = frontendUrl.split(',').map((o) => o.trim()).filter(Boolean);
+  const allowedOrigins = frontendUrl
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  // Flag TEMPORAL para debug: CORS_ABIERTO=true refleja cualquier origen.
+  // No dejar activado en produccion: permite a cualquier web llamar a la API con credenciales.
+  const aperturaTotal = process.env.CORS_ABIERTO === 'true';
+  if (aperturaTotal) {
+    console.warn(
+      'CORS_ABIERTO=true: permitiendo cualquier origen (solo debug temporal)',
+    );
+  }
   app.enableCors({
-    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
+    origin: aperturaTotal
+      ? true
+      : allowedOrigins.length === 1
+        ? allowedOrigins[0]
+        : allowedOrigins,
     credentials: true,
-  })
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization',
+    maxAge: 86400,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true, 
+      forbidNonWhitelisted: true,
       transform: true,
-    })
+    }),
   );
 
   await app.listen(process.env.PORT ?? 3000);
