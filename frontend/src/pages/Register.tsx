@@ -58,6 +58,9 @@ export default function Register() {
       if (invitacionToken && sesion?.token) {
         setSuccess('¡Cuenta creada! Entrando a tus proyectos compartidos...');
         setTimeout(() => navigate('/proyectos'), 1500);
+      } else if (sesion?.advertencia) {
+        setSuccess(`Registro exitoso. ${sesion.advertencia}`);
+        setTimeout(() => navigate('/inicio-sesion'), 5000);
       } else {
         setSuccess('Registro exitoso. Revisa tu correo para confirmar la cuenta.');
         setTimeout(() => navigate('/inicio-sesion'), 3000);

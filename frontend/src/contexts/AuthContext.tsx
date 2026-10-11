@@ -16,7 +16,7 @@ interface AuthContextType {
   usuario: Usuario | null;
   token: string | null;
   login: (correo: string, contrasena: string) => Promise<void>;
-  register: (nombre: string, correo: string, contrasena: string, ciudad?: string, fechaNacimiento?: string, invitacionToken?: string) => Promise<{ token?: string; refreshToken?: string }>;
+  register: (nombre: string, correo: string, contrasena: string, ciudad?: string, fechaNacimiento?: string, invitacionToken?: string) => Promise<{ token?: string; refreshToken?: string; advertencia?: string }>;
   establecerSesion: (token: string, refreshToken: string | undefined, usuario: Usuario) => void;
   refreshUsuario: () => Promise<void>;
   logout: () => void;
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(data.token);
       setUsuario(data.usuario);
     }
-    return { token: data?.token as string | undefined, refreshToken: data?.refreshToken as string | undefined };
+    return { token: data?.token as string | undefined, refreshToken: data?.refreshToken as string | undefined, advertencia: data?.advertencia as string | undefined };
   };
 
   const establecerSesion = (nuevoToken: string, nuevoRefresh: string | undefined, nuevoUsuario: Usuario) => {
