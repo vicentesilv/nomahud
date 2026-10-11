@@ -63,12 +63,18 @@ export class MailService {
     }
 
     private async sendViaSmtp(to: string, subject: string, html: string): Promise<void> {
-        const transporter = nodemailer.createTransport({
+        if (!this.smtpHost) {
+            throw new Error('SMTP_HOST no configurado');
+        }
+        const options: { host: string; port: number; secure: boolean; auth?: { user: string; pass: string } } = {
             host: this.smtpHost,
             port: this.smtpPort,
             secure: this.smtpPort === 465,
-            auth: this.smtpUser && this.smtpPass ? { user: this.smtpUser, pass: this.smtpPass } : undefined,
-        });
+        };
+        if (this.smtpUser && this.smtpPass) {
+            options.auth = { user: this.smtpUser, pass: this.smtpPass };
+        }
+        const transporter = nodemailer.createTransport(options);
 
         await transporter.sendMail({
             from: `${this.fromName} <${this.fromEmail}>`,
