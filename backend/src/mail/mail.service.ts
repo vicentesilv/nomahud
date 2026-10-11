@@ -66,10 +66,14 @@ export class MailService {
         if (!this.smtpHost) {
             throw new Error('SMTP_HOST no configurado');
         }
-        const options: { host: string; port: number; secure: boolean; auth?: { user: string; pass: string } } = {
+        const options: { host: string; port: number; secure: boolean; connectionTimeout: number; greetingTimeout: number; socketTimeout: number; auth?: { user: string; pass: string } } = {
             host: this.smtpHost,
             port: this.smtpPort,
             secure: this.smtpPort === 465,
+            // Límites estrictos: sin esto un SMTP inalcanzable deja colgada la request varios minutos
+            connectionTimeout: 15000,
+            greetingTimeout: 15000,
+            socketTimeout: 20000,
         };
         if (this.smtpUser && this.smtpPass) {
             options.auth = { user: this.smtpUser, pass: this.smtpPass };

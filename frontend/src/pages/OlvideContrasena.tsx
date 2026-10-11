@@ -13,7 +13,7 @@ export default function OlvideContrasena() {
     setError('');
     setMensaje('');
     try {
-      const { data } = await api.post('/auth/solicitar-recuperacion', { correo });
+      const { data } = await api.post('/auth/solicitar-recuperacion', { correo: correo.trim() });
       setMensaje(data.mensaje);
       setEnviado(true);
     } catch (err: any) {

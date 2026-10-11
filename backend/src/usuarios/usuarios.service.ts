@@ -13,8 +13,15 @@ export class UsuariosService {
         
     ){}
 
+    private normalizarCorreo(correo: string): string {
+        return (correo ?? '').trim().toLowerCase();
+    }
+
     async createUsuario(createUsuarioDto: CreateUsuarioDto): Promise<Usuario> {
-        const usuario = this.usuariosRepository.create(createUsuarioDto);
+        const usuario = this.usuariosRepository.create({
+            ...createUsuarioDto,
+            correo: this.normalizarCorreo(createUsuarioDto.correo),
+        });
 
         const usuarioCreado = await this.usuariosRepository.save(usuario);
         const { contrasena: _, ...usuarioSinContrasena } = usuarioCreado as Usuario & {
@@ -25,7 +32,7 @@ export class UsuariosService {
 
     async findByEmail(correo: string): Promise<Usuario | null> {
         return this.usuariosRepository.findOne({
-            where: { correo },
+            where: { correo: this.normalizarCorreo(correo) },
         });
     }
 
@@ -33,7 +40,7 @@ export class UsuariosService {
         return this.usuariosRepository
             .createQueryBuilder('usuario')
             .addSelect('usuario.contrasena')
-            .where('usuario.correo = :correo', { correo })
+            .where('usuario.correo = :correo', { correo: this.normalizarCorreo(correo) })
             .getOne();
     }
 

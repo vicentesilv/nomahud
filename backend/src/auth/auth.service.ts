@@ -166,12 +166,13 @@ export class AuthService {
         });
 
         let advertencia: string | undefined;
-        try {
-            await this.sendEmailConfirmation(usuarioCreado as Usuario);
-        } catch (error) {
-            const mensaje = error instanceof Error ? error.message : String(error);
-            this.logger.error(`No se pudo enviar el correo de confirmación a ${correo}: ${mensaje}`);
-            advertencia = 'Cuenta creada, pero no pudimos enviarte el correo de confirmación. Usá "Reenviar confirmación" más tarde.';
+        const correoEnviado = await this.enviarConLimite(
+            () => this.sendEmailConfirmation(usuarioCreado as Usuario),
+            8000,
+            `correo de confirmación a ${correo}`,
+        );
+        if (!correoEnviado) {
+            advertencia = 'Cuenta creada. Si no recibís el correo de confirmación en unos minutos, usá "Reenviar confirmación".';
         }
 
         await this.perfilesService.findOrCreate(usuarioCreado.id);
@@ -309,7 +310,13 @@ export class AuthService {
             }
         }
 
-        await this.sendEmailConfirmation(usuario as Usuario);
+        const enviado = await this.enviarConLimite(() => this.sendEmailConfirmation(usuario as Usuario), 8000, `correo de confirmación a ${usuario.correo}`);
+
+        if (!enviado) {
+            return {
+                mensaje: 'Si la cuenta existe, recibirás el correo de confirmación en unos minutos.',
+            };
+        }
 
         return {
             mensaje: 'Correo de confirmación reenviado correctamente',
@@ -340,7 +347,7 @@ export class AuthService {
         const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
         const enlaceRecuperacion = `${frontendUrl}/restablecer-contrasena?token=${token}`;
 
-        await this.sendTransactionalEmail(
+        await this.enviarConLimite(() => this.sendTransactionalEmail(
             usuario.correo,
             'Recuperación de contraseña',
             `
@@ -354,9 +361,9 @@ export class AuthService {
                 nombre: usuario.nombre,
                 enlaceRecuperacion,
             },
-            'recuperacion_solicitada',
-            usuario.id,
-        );
+                'recuperacion_solicitada',
+                usuario.id,
+            ), 8000, `correo de recuperación a ${usuario.correo}`);
 
         this.logger.log(`Recuperación solicitada para usuarioId=${usuario.id}`);
 
@@ -399,6 +406,29 @@ export class AuthService {
         return {
             mensaje: 'Contraseña restablecida correctamente',
         };
+    }
+
+    /**
+     * Ejecuta un envío con límite de tiempo: si tarda más de `ms`,
+     * la request sigue su curso y el envío continúa en segundo plano.
+     * Nunca rechaza: los errores quedan registrados en el log.
+     */
+    private async enviarConLimite(enviar: () => Promise<void>, ms: number, etiqueta: string): Promise<boolean> {
+        const tarea = enviar().then(
+            () => true,
+            (error) => {
+                const mensaje = error instanceof Error ? error.message : String(error);
+                this.logger.error(`No se pudo enviar ${etiqueta}: ${mensaje}`);
+                return false;
+            },
+        );
+        let temporizador: ReturnType<typeof setTimeout>;
+        const espera = new Promise<boolean>((resolve) => {
+            temporizador = setTimeout(() => resolve(false), ms);
+        });
+        const resultado = await Promise.race([tarea, espera]);
+        clearTimeout(temporizador!);
+        return resultado;
     }
 
     private async sendEmailConfirmation(usuario: Usuario): Promise<void> {

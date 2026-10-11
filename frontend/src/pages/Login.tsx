@@ -18,7 +18,7 @@ export default function Login() {
     setError('');
     setIsLoading(true);
     try {
-      await login(correo, contrasena);
+      await login(correo.trim(), contrasena);
       navigate('/mi-perfil');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión');

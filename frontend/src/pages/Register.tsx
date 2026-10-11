@@ -54,7 +54,7 @@ export default function Register() {
     setSuccess('');
     setIsLoading(true);
     try {
-      const sesion = await register(form.nombre, form.correo, form.contrasena, form.ciudad || undefined, form.fechaNacimiento || undefined, invitacionToken || undefined);
+      const sesion = await register(form.nombre.trim(), form.correo.trim(), form.contrasena, form.ciudad.trim() || undefined, form.fechaNacimiento || undefined, invitacionToken || undefined);
       if (invitacionToken && sesion?.token) {
         setSuccess('¡Cuenta creada! Entrando a tus proyectos compartidos...');
         setTimeout(() => navigate('/proyectos'), 1500);
