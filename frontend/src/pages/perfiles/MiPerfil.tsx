@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import api, { resolvePublicUrl } from '../../services/api';
+import { Camera, CameraResultType } from '@capacitor/camera';
+import { esNativo } from '../../utils/plataforma';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirm } from '../../hooks/useConfirm';
 
@@ -114,6 +116,14 @@ function IconUpload() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function IconCamera() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
     </svg>
   );
 }
@@ -275,7 +285,28 @@ export default function MiPerfil() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    await subirAvatar(file);
+  };
 
+  const tomarFoto = async () => {
+    try {
+      const foto = await Camera.getPhoto({
+        quality: 85,
+        allowEditing: true,
+        resultType: CameraResultType.DataUrl,
+      });
+      if (!foto.dataUrl) return;
+      const res = await fetch(foto.dataUrl);
+      const blob = await res.blob();
+      await subirAvatar(new File([blob], 'avatar-camara.jpg', { type: 'image/jpeg' }));
+    } catch (err: unknown) {
+      if ((err as { message?: string })?.message !== 'User cancelled photos app') {
+        setMsg({ text: 'No se pudo tomar la foto', type: 'error' });
+      }
+    }
+  };
+
+  const subirAvatar = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setMsg({ text: 'Solo se permiten imágenes', type: 'error' });
       return;
@@ -569,6 +600,12 @@ export default function MiPerfil() {
                       </>
                     )}
                   </button>
+                  {esNativo && (
+                    <button type="button" className="btn-upload" onClick={tomarFoto} disabled={subiendoAvatar}>
+                      <IconCamera />
+                      Cámara
+                    </button>
+                  )}
                   <span className="avatar-upload-hint">PNG, JPG o WebP. Máx 5MB.</span>
                 </div>
                 <input

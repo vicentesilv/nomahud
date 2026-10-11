@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nomahud</string>
+    <string name="title_activity_main">Nomahud</string>
+    <string name="package_name">com.nomahud.app</string>
+    <string name="custom_url_scheme">com.nomahud.app</string>
+</resources>

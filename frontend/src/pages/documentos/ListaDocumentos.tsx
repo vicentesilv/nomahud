@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import api, { backendUrl, extraerLista } from '../../services/api';
+import { descargarArchivo } from '../../utils/archivos';
 import { useConfirm } from '../../hooks/useConfirm';
 import VisorDocumentos from './VisorDocumentos';
 import mammoth from 'mammoth/mammoth.browser.js';
@@ -145,14 +146,7 @@ export default function ListaDocumentos() {
       });
       if (!res.ok) throw new Error('Error al descargar');
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = doc.nombre;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await descargarArchivo(blob, doc.nombre, blob.type);
     } catch {
       setMsg('Error al descargar el archivo');
     }

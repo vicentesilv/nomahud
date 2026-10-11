@@ -1,9 +1,17 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
+/** URL pública de la API (producción/Railway). Se usa solo como fallback en la app nativa. */
+const API_PUBLICA_FALLBACK = 'https://nomahudapi.up.railway.app';
+
+const apiBaseUrl =
+  import.meta.env.VITE_API_URL ||
+  (Capacitor.isNativePlatform() ? API_PUBLICA_FALLBACK : '/api');
 
 /** Raíz del backend vista desde el navegador (sin /api final). */
-const backendRoot = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const backendRoot = (
+  import.meta.env.VITE_API_URL || (Capacitor.isNativePlatform() ? API_PUBLICA_FALLBACK : '')
+).replace(/\/$/, '');
 
 /** URL absoluta al backend para un path tipo `/documentos/1/download`. */
 export function backendUrl(path: string): string {

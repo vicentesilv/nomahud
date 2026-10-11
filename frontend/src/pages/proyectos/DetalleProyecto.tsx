@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { backendUrl } from '../../services/api';
+import { descargarArchivo } from '../../utils/archivos';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
@@ -257,14 +258,7 @@ export default function DetalleProyecto() {
       });
       if (!res.ok) throw new Error('No se pudo generar el reporte');
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte-proyecto-${id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await descargarArchivo(blob, `reporte-proyecto-${id}.pdf`, 'application/pdf');
       setMsg({ text: 'Reporte PDF descargado', type: 'success' });
     } catch {
       setMsg({ text: 'No se pudo generar el reporte', type: 'error' });
