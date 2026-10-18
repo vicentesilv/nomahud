@@ -4992,7 +4992,18 @@ body {
   }
 
   .finanzas-resumen {
+    grid-template-columns: 1fr;
     gap: 0.5rem;
+  }
+
+  .finanzas-resumen-skeleton {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .finanzas-resumen-card {
+    min-width: 0;
+    width: 100%;
   }
 
   .page-finanzas .page-header {
@@ -5032,6 +5043,7 @@ body {
   .finanzas-filtros {
     width: 100%;
     overflow-x: auto;
+    max-width: 100%;
   }
 
   .finanzas-filtro-btn {
@@ -5040,12 +5052,29 @@ body {
     white-space: nowrap;
   }
 
+  .finanzas-empty {
+    padding: 2rem 1rem;
+    max-width: 100%;
+  }
+
+  .finanzas-empty .btn-icon {
+    max-width: 100%;
+    white-space: nowrap;
+  }
+
   .tiempo-resumen {
+    grid-template-columns: 1fr;
     gap: 0.5rem;
   }
 
   .tiempo-resumen-skeleton {
+    grid-template-columns: 1fr;
     gap: 0.5rem;
+  }
+
+  .tiempo-resumen-card {
+    min-width: 0;
+    width: 100%;
   }
 
   .page-tiempo .page-header h1 {
@@ -5065,6 +5094,16 @@ body {
   .tiempo-filtro-select {
     width: 100%;
     min-width: 0;
+  }
+
+  .tiempo-empty {
+    padding: 2rem 1rem;
+    max-width: 100%;
+  }
+
+  .tiempo-empty .btn-icon {
+    max-width: 100%;
+    white-space: nowrap;
   }
 
   .viajes-grid {
