@@ -433,6 +433,11 @@ body {
   margin-left: 72px;
 }
 
+/* Navegación inferior: se activa solo en la app nativa y en pantallas pequeñas. */
+.mobile-bottom-nav {
+  display: none;
+}
+
 /* ===== AUTH PAGES ===== */
 .auth-page {
   min-height: 100vh;
@@ -4613,6 +4618,83 @@ body {
     margin-left: 0;
     padding: 1rem;
     padding-top: 4.5rem;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 180;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.15rem;
+    padding: 0.45rem 0.5rem max(0.45rem, env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .mobile-bottom-link {
+    min-width: 0;
+    min-height: 3.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.18rem;
+    padding: 0.3rem 0.15rem;
+    border-radius: 0.65rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.64rem;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .mobile-bottom-link svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .mobile-bottom-link.active {
+    color: var(--primary);
+    background: rgba(124, 58, 237, 0.12);
+  }
+
+  .mobile-bottom-link.active svg {
+    color: var(--primary);
+  }
+
+  .native-layout .sidebar-toggle {
+    display: none;
+  }
+
+  .mobile-bottom-more {
+    color: var(--text-muted);
+  }
+
+  .mobile-bottom-avatar {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+    font-size: 0.56rem;
+    font-weight: 700;
+  }
+
+  .main-content {
+    padding-bottom: 5.5rem;
   }
 
   .main-content.sidebar-collapsed {

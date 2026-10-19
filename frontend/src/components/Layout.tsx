@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { DivisaProvider } from '../contexts/DivisaContext';
+import { esNativo } from '../utils/plataforma';
 
 function IconMenu() {
   return (
@@ -97,6 +98,42 @@ function IconLogOut() {
     </svg>
   );
 }
+
+function IconMore() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
+    </svg>
+  );
+}
+
+function MobileBottomNav({ esInvitado, closeSidebar, openSidebar }: { esInvitado: boolean; closeSidebar: () => void; openSidebar: () => void }) {
+  return (
+    <nav className="mobile-bottom-nav" aria-label="Navegación principal móvil">
+      <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'mobile-bottom-link active' : 'mobile-bottom-link'} onClick={closeSidebar}>
+        <IconDashboard />
+        <span>Inicio</span>
+      </NavLink>
+      <NavLink to="/proyectos" className={({ isActive }) => isActive ? 'mobile-bottom-link active' : 'mobile-bottom-link'} onClick={closeSidebar}>
+        <IconFolder />
+        <span>Proyectos</span>
+      </NavLink>
+      {!esInvitado && (
+        <>
+          <NavLink to="/finanzas" className={({ isActive }) => isActive ? 'mobile-bottom-link active' : 'mobile-bottom-link'} onClick={closeSidebar}>
+            <IconDollarSign />
+            <span>Finanzas</span>
+          </NavLink>
+        </>
+      )}
+      <button type="button" className="mobile-bottom-link mobile-bottom-more" onClick={openSidebar} aria-label="Abrir más opciones">
+        <IconMore />
+        <span>Más</span>
+      </button>
+    </nav>
+  );
+}
+
 export default function Layout() {
   const { usuario, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -120,7 +157,7 @@ export default function Layout() {
   const esInvitado = usuario?.rol === 'invitado';
 
   return (
-    <div className="layout">
+    <div className={`layout ${esNativo ? 'native-layout' : ''}`}>
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
 
       <button
@@ -232,6 +269,7 @@ export default function Layout() {
           <Outlet />
         </DivisaProvider>
       </main>
+      {esNativo && <MobileBottomNav esInvitado={esInvitado} closeSidebar={closeSidebar} openSidebar={() => setSidebarOpen(true)} />}
     </div>
   );
 }
