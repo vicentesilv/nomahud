@@ -843,9 +843,10 @@ body {
   margin-top: 0.15rem;
 }
 
+
 .dashboard-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
@@ -866,6 +867,8 @@ body {
 .stat-card:nth-child(2) { animation-delay: 0.05s; }
 .stat-card:nth-child(3) { animation-delay: 0.1s; }
 .stat-card:nth-child(4) { animation-delay: 0.15s; }
+.stat-card:nth-child(5) { animation-delay: 0.2s; }
+.stat-card:nth-child(6) { animation-delay: 0.25s; }
 
 .stat-card:hover {
   border-color: var(--border-glow);
@@ -901,6 +904,11 @@ body {
 .stat-card-amber .stat-icon {
   background: rgba(245, 158, 11, 0.15);
   color: var(--warning);
+}
+
+.stat-card-red .stat-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
 }
 
 .stat-info {
@@ -996,6 +1004,25 @@ body {
 .finanzas-bar-negative {
   background: var(--error);
 }
+
+/* Dashboard charts */
+.dashboard-charts { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+.chart-card { min-height: 245px; }
+.chart-bars { height: 170px; display: flex; align-items: stretch; justify-content: center; gap: clamp(1.25rem, 6vw, 3rem); padding: 0.5rem 1rem 0; border-bottom: 1px solid var(--border); }
+.chart-bar-group { flex: 0 1 90px; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.chart-bar-value { color: var(--text-muted); font-size: 0.68rem; min-height: 1.1rem; white-space: nowrap; }
+.chart-bar-track { flex: 1; width: 42px; display: flex; align-items: flex-end; margin-top: 0.35rem; }
+.chart-bar { width: 100%; min-height: 6px; border-radius: 8px 8px 0 0; transition: height 0.5s ease-out; }
+.chart-bar-income { background: linear-gradient(180deg, var(--success), rgba(16, 185, 129, 0.35)); }
+.chart-bar-expense { background: linear-gradient(180deg, var(--error), rgba(239, 68, 68, 0.35)); }
+.chart-bar-balance { background: linear-gradient(180deg, var(--primary), rgba(124, 58, 237, 0.35)); }
+.chart-bar-label { color: var(--text-dim); font-size: 0.7rem; padding-top: 0.5rem; }
+.priority-chart { display: flex; flex-direction: column; gap: 1rem; padding-top: 0.65rem; }
+.priority-chart-row { display: grid; grid-template-columns: 58px 1fr 22px; align-items: center; gap: 0.65rem; font-size: 0.72rem; }
+.priority-chart-label { color: var(--text-muted); }
+.priority-chart-row strong { color: var(--text); text-align: right; }
+.priority-chart-track { height: 8px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; }
+.priority-chart-fill { height: 100%; border-radius: inherit; transition: width 0.5s ease-out; }
 
 /* Dashboard grid (tareas + viajes) */
 .dashboard-grid {
@@ -4921,6 +4948,11 @@ body {
   }
 
   .dashboard-finanzas {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .dashboard-charts {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }

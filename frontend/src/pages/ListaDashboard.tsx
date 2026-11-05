@@ -100,7 +100,7 @@ export default function ListaDashboard() {
         <div className="page-header"><h1>Dashboard</h1></div>
         <div className="dashboard-skeleton">
           <div className="dashboard-stats">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="skeleton-stat">
                 <div className="skeleton-line w-40" />
                 <div className="skeleton-line w-24" style={{ height: '28px', marginTop: '0.5rem' }} />
@@ -137,12 +137,18 @@ export default function ListaDashboard() {
   }
 
   const actividadIcon: Record<string, string> = { ingreso: '💰', gasto: '💸', tarea_completada: '✅' };
+  const tareasVencidas = data.tareasPendientes.filter((t) => t.fechaVencimiento && new Date(t.fechaVencimiento) < new Date()).length;
+  const tareasPorPrioridad = ['critica', 'alta', 'media', 'baja'].map((prioridad) => ({ prioridad, total: data.tareasPendientes.filter((t) => t.prioridad === prioridad).length }));
+  const maxPrioridad = Math.max(...tareasPorPrioridad.map((item) => item.total), 1);
+  const maxFinanzas = Math.max(data.resumenFinanzas.ingresos, data.resumenFinanzas.gastos, 1);
 
   return (
     <div className="page-dashboard">
       <div className="page-header">
-        <h1>Dashboard</h1>
-        <p className="page-header-sub">Resumen general de tu actividad</p>
+        <div>
+          <h1>Dashboard</h1>
+          <p className="page-header-sub">Resumen general de tu actividad</p>
+        </div>
       </div>
 
       <div className="dashboard-stats">
@@ -167,11 +173,32 @@ export default function ListaDashboard() {
             <span className="stat-label">Ingresos del mes</span>
           </div>
         </div>
+        <div className="stat-card stat-card-red">
+          <div className="stat-icon"><IconDollar /></div>
+          <div className="stat-info">
+            <span className="stat-value">{formatear(data.resumenFinanzas.gastos, moneda)}</span>
+            <span className="stat-label">Gastos del mes</span>
+          </div>
+        </div>
+        <div className={`stat-card ${data.resumenFinanzas.balance >= 0 ? 'stat-card-green' : 'stat-card-red'}`}>
+          <div className="stat-icon"><IconDollar /></div>
+          <div className="stat-info">
+            <span className="stat-value">{formatear(data.resumenFinanzas.balance, moneda)}</span>
+            <span className="stat-label">Ganancia neta</span>
+          </div>
+        </div>
         <div className="stat-card stat-card-amber">
           <div className="stat-icon"><IconClock /></div>
           <div className="stat-info">
             <span className="stat-value">{data.horasMes.toFixed(1)}h</span>
             <span className="stat-label">Horas del mes</span>
+          </div>
+        </div>
+        <div className={`stat-card ${tareasVencidas > 0 ? 'stat-card-red' : 'stat-card-cyan'}`}>
+          <div className="stat-icon"><IconCheckSquare /></div>
+          <div className="stat-info">
+            <span className="stat-value">{tareasVencidas}</span>
+            <span className="stat-label">Tareas vencidas</span>
           </div>
         </div>
       </div>
@@ -191,6 +218,23 @@ export default function ListaDashboard() {
           </span>
           <div className="finanzas-bar">
             <div className={`finanzas-bar-fill ${data.resumenFinanzas.balance >= 0 ? 'finanzas-bar-positive' : 'finanzas-bar-negative'}`} style={{ width: `${Math.min(Math.abs(data.resumenFinanzas.balance) / (Math.max(data.resumenFinanzas.ingresos, data.resumenFinanzas.gastos) || 1) * 100, 100)}%` }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-charts">
+        <div className="dashboard-card chart-card">
+          <div className="dashboard-card-header"><IconDollar /><h3>Ingresos vs gastos</h3></div>
+          <div className="chart-bars" aria-label="Comparación de ingresos y gastos">
+            <div className="chart-bar-group"><div className="chart-bar-value">{formatear(data.resumenFinanzas.ingresos, moneda)}</div><div className="chart-bar-track"><div className="chart-bar chart-bar-income" style={{ height: `${Math.max((data.resumenFinanzas.ingresos / maxFinanzas) * 100, 4)}%` }} /></div><span className="chart-bar-label">Ingresos</span></div>
+            <div className="chart-bar-group"><div className="chart-bar-value">{formatear(data.resumenFinanzas.gastos, moneda)}</div><div className="chart-bar-track"><div className="chart-bar chart-bar-expense" style={{ height: `${Math.max((data.resumenFinanzas.gastos / maxFinanzas) * 100, 4)}%` }} /></div><span className="chart-bar-label">Gastos</span></div>
+            <div className="chart-bar-group"><div className="chart-bar-value">{formatear(Math.abs(data.resumenFinanzas.balance), moneda)}</div><div className="chart-bar-track"><div className={`chart-bar ${data.resumenFinanzas.balance >= 0 ? 'chart-bar-balance' : 'chart-bar-expense'}`} style={{ height: `${Math.max((Math.abs(data.resumenFinanzas.balance) / maxFinanzas) * 100, 4)}%` }} /></div><span className="chart-bar-label">Balance</span></div>
+          </div>
+        </div>
+        <div className="dashboard-card chart-card">
+          <div className="dashboard-card-header"><IconCheckSquare /><h3>Tareas por prioridad</h3></div>
+          <div className="priority-chart">
+            {tareasPorPrioridad.map((item) => <div className="priority-chart-row" key={item.prioridad}><span className="priority-chart-label">{PRIORIDAD_LABEL[item.prioridad]}</span><div className="priority-chart-track"><div className="priority-chart-fill" style={{ width: `${(item.total / maxPrioridad) * 100}%`, background: PRIORIDAD_COLOR[item.prioridad] }} /></div><strong>{item.total}</strong></div>)}
           </div>
         </div>
       </div>
