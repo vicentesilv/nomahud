@@ -17,6 +17,15 @@ function mimePorExtension(filename: string): string {
     return 'image/jpeg';
 }
 
+function imagenValida(file: Express.Multer.File): boolean {
+    if (!file.buffer) return true;
+    const bytes = file.buffer.subarray(0, 8);
+    if (file.mimetype === 'image/png') return bytes.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    if (file.mimetype === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    if (file.mimetype === 'image/webp') return file.buffer.subarray(0, 4).toString() === 'RIFF' && file.buffer.subarray(8, 12).toString() === 'WEBP';
+    return false;
+}
+
 @Controller('perfiles')
 export class PerfilesController {
     constructor(private readonly perfilesService: PerfilesService) {}
@@ -49,6 +58,9 @@ export class PerfilesController {
     async uploadAvatar(@User() usuario: Usuario, @UploadedFile() file: Express.Multer.File) {
         if (!file) {
             throw new BadRequestException('Archivo es requerido');
+        }
+        if (!imagenValida(file)) {
+            throw new BadRequestException('El archivo no es una imagen válida');
         }
         return this.perfilesService.updateAvatar(usuario.id, file.buffer, path.extname(file.originalname) || '.jpg', file.mimetype);
     }

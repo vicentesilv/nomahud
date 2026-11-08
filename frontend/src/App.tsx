@@ -1,39 +1,41 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import OlvideContrasena from './pages/OlvideContrasena';
-import RestablecerContrasena from './pages/RestablecerContrasena';
-import ConfirmarCuenta from './pages/ConfirmarCuenta';
-import MiPerfil from './pages/perfiles/MiPerfil';
-import PerfilPublico from './pages/perfiles/PerfilPublico';
-import ListaProyectos from './pages/proyectos/ListaProyectos';
-import NuevoProyecto from './pages/proyectos/NuevoProyecto';
-import DetalleProyecto from './pages/proyectos/DetalleProyecto';
-import AceptarInvitacion from './pages/proyectos/AceptarInvitacion';
-import ProyectoPublico from './pages/proyectos/ProyectoPublico';
-import ListaClientes from './pages/clientes/ListaClientes';
-import NuevoCliente from './pages/clientes/NuevoCliente';
-import DetalleCliente from './pages/clientes/DetalleCliente';
-import ListaFinanzas from './pages/finanzas/ListaFinanzas';
-import NuevaTransaccion from './pages/finanzas/NuevaTransaccion';
-import ListaTiempo from './pages/tiempo/ListaTiempo';
-import NuevoRegistroTiempo from './pages/tiempo/NuevoRegistroTiempo';
-import ListaViajes from './pages/viajes/ListaViajes';
-import NuevoViaje from './pages/viajes/NuevoViaje';
-import DetalleViaje from './pages/viajes/DetalleViaje';
-import ListaDocumentos from './pages/documentos/ListaDocumentos';
-import ListaTareas from './pages/tareas/ListaTareas';
-import Calendario from './pages/Calendario';
-import ListaDashboard from './pages/ListaDashboard';
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const OlvideContrasena = lazy(() => import('./pages/OlvideContrasena'));
+const RestablecerContrasena = lazy(() => import('./pages/RestablecerContrasena'));
+const ConfirmarCuenta = lazy(() => import('./pages/ConfirmarCuenta'));
+const MiPerfil = lazy(() => import('./pages/perfiles/MiPerfil'));
+const PerfilPublico = lazy(() => import('./pages/perfiles/PerfilPublico'));
+const ListaProyectos = lazy(() => import('./pages/proyectos/ListaProyectos'));
+const NuevoProyecto = lazy(() => import('./pages/proyectos/NuevoProyecto'));
+const DetalleProyecto = lazy(() => import('./pages/proyectos/DetalleProyecto'));
+const AceptarInvitacion = lazy(() => import('./pages/proyectos/AceptarInvitacion'));
+const ProyectoPublico = lazy(() => import('./pages/proyectos/ProyectoPublico'));
+const ListaClientes = lazy(() => import('./pages/clientes/ListaClientes'));
+const NuevoCliente = lazy(() => import('./pages/clientes/NuevoCliente'));
+const DetalleCliente = lazy(() => import('./pages/clientes/DetalleCliente'));
+const ListaFinanzas = lazy(() => import('./pages/finanzas/ListaFinanzas'));
+const NuevaTransaccion = lazy(() => import('./pages/finanzas/NuevaTransaccion'));
+const ListaTiempo = lazy(() => import('./pages/tiempo/ListaTiempo'));
+const NuevoRegistroTiempo = lazy(() => import('./pages/tiempo/NuevoRegistroTiempo'));
+const ListaViajes = lazy(() => import('./pages/viajes/ListaViajes'));
+const NuevoViaje = lazy(() => import('./pages/viajes/NuevoViaje'));
+const DetalleViaje = lazy(() => import('./pages/viajes/DetalleViaje'));
+const ListaDocumentos = lazy(() => import('./pages/documentos/ListaDocumentos'));
+const ListaTareas = lazy(() => import('./pages/tareas/ListaTareas'));
+const Calendario = lazy(() => import('./pages/Calendario'));
+const ListaDashboard = lazy(() => import('./pages/ListaDashboard'));
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <Suspense fallback={<div className="loading" style={{ padding: '3rem', textAlign: 'center' }}>Cargando...</div>}>
+          <Routes>
           <Route path="/inicio-sesion" element={<Login />} />
           <Route path="/registro" element={<Register />} />
           <Route path="/olvide-contrasena" element={<OlvideContrasena />} />
@@ -65,7 +67,8 @@ export default function App() {
             </Route>
           </Route>
           <Route path="*" element={<Login />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );

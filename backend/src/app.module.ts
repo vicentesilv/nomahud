@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { SaludController } from './salud/salud.controller';
 import { InvitadoInterceptor } from './common/interceptors/invitado.interceptor';
@@ -24,6 +24,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { StorageModule } from './storage/storage.module';
 import { DivisasModule } from './divisas/divisas.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -46,7 +47,9 @@ import { ReportesModule } from './reportes/reportes.module';
         database: configService.getOrThrow<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migraciones/*{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV') !== 'production',
+        // Las migraciones son la fuente de verdad incluso en staging/QA.
+        // Solo se permite sincronización explícita para desarrollo local.
+        synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
         migrationsRun: configService.get<string>('NODE_ENV') === 'production',
       }),
       inject: [ConfigService],
@@ -69,6 +72,10 @@ import { ReportesModule } from './reportes/reportes.module';
     ReportesModule,
   ],
   controllers: [AppController, SaludController],
-  providers: [AppService, { provide: APP_INTERCEPTOR, useClass: InvitadoInterceptor }],
+  providers: [
+    AppService,
+    { provide: APP_INTERCEPTOR, useClass: InvitadoInterceptor },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

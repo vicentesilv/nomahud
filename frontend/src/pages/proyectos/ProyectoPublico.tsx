@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
-import { useDivisa, DivisaProvider } from '../../contexts/DivisaContext';
 
 interface TareaPublica {
   id: number;
@@ -45,10 +44,16 @@ const PRIORIDAD_COLOR: Record<string, string> = {
 export default function ProyectoPublico() {
   const [params] = useSearchParams();
   const token = params.get('token') || '';
-  const { formatear } = useDivisa();
   const [data, setData] = useState<ProyectoPublico | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const formatear = (monto: number, moneda: string) => {
+    try {
+      return new Intl.NumberFormat('es-MX', { style: 'currency', currency: moneda || 'USD' }).format(monto);
+    } catch {
+      return `${moneda || 'USD'} ${monto.toFixed(2)}`;
+    }
+  };
 
   useEffect(() => {
     if (!token) {
@@ -91,7 +96,6 @@ export default function ProyectoPublico() {
   const badgeEstado = data.estado === 'activo' || data.estado === 'completado' ? 'badge-success' : data.estado === 'en_pausa' ? 'badge-warning' : 'badge-error';
 
   return (
-    <DivisaProvider>
     <div className="page-tareas" style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div className="page-header">
         <h1>{data.nombre}</h1>
@@ -185,6 +189,5 @@ export default function ProyectoPublico() {
         Vista pública generada por {data.creador || 'el propietario'} · Nomahud
       </p>
     </div>
-    </DivisaProvider>
   );
 }

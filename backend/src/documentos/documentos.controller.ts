@@ -34,6 +34,22 @@ function filtroArchivoSeguro(_req: unknown, file: Express.Multer.File, cb: (err:
     cb(null, true);
 }
 
+function firmaArchivoValida(file: Express.Multer.File): boolean {
+    // Algunos adaptadores/test doubles no exponen buffer; Multer memoryStorage sí.
+    if (!file.buffer) return true;
+    const bytes = file.buffer.subarray(0, 8);
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.png'].includes(ext)) return bytes.length >= 8 && bytes.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    if (['.jpg', '.jpeg'].includes(ext)) return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    if (ext === '.pdf') return file.buffer.subarray(0, 5).toString() === '%PDF-';
+    if (['.docx', '.xlsx', '.pptx'].includes(ext)) return file.buffer.subarray(0, 2).toString() === 'PK';
+    return ['.webp', '.txt', '.csv'].includes(ext);
+}
+
+function validarArchivo(file: Express.Multer.File): void {
+    if (!firmaArchivoValida(file)) throw new BadRequestException('El contenido del archivo no coincide con su extensión');
+}
+
 function sanitizarNombreDescarga(nombre: string): string {
     return nombre.replace(/["\r\n\\]/g, '_').slice(0, 150) || 'documento';
 }
@@ -53,6 +69,7 @@ export class DocumentosController {
         if (!file) {
             throw new BadRequestException('Archivo es requerido');
         }
+        validarArchivo(file);
         return this.documentosService.create(usuario.id, file, dto);
     }
 
@@ -102,6 +119,7 @@ export class DocumentosController {
         @UploadedFile() file: Express.Multer.File,
     ) {
         if (!file) throw new BadRequestException('Archivo es requerido');
+        validarArchivo(file);
         return this.documentosService.reemplazarArchivo(id, usuario.id, file);
     }
 
