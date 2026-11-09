@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api, { extraerLista } from '../../services/api';
 import { useDivisa } from '../../contexts/DivisaContext';
+import { useConfirm } from '../../hooks/useConfirm';
 
 interface Viaje {
   id: number;
@@ -62,11 +63,40 @@ function IconTravel() {
   );
 }
 
+function IconEdit() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg>;
+}
+
+function IconTrash() {
+  return <svg color="red" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>;
+}
+
+function IconRoute() {
+  return <svg  width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2" /><line x1="8" y1="8" x2="16" y2="8" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="8" y1="16" x2="13" y2="16" /></svg>;
+}
+
 
 export default function ListaViajes() {
   const { formatear } = useDivisa();
+  const { confirm, dialog } = useConfirm();
   const [viajes, setViajes] = useState<Viaje[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const eliminarViaje = async (id: number, destino: string) => {
+    const ok = await confirm({
+      titulo: 'Eliminar viaje',
+      mensaje: `¿Eliminar el viaje a ${destino}? Esta acción no se puede deshacer.`,
+      confirmarTexto: 'Eliminar',
+      peligroso: true,
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/viajes/${id}`);
+      setViajes((actuales) => actuales.filter((viaje) => viaje.id !== id));
+    } catch {
+      // El interceptor y las pantallas globales gestionan la sesión; la card permanece intacta.
+    }
+  };
 
   useEffect(() => {
     api.get('/viajes').then(({ data }) => {
@@ -94,6 +124,8 @@ export default function ListaViajes() {
 
   return (
     <div className="page-viajes">
+      {dialog}
+      {viajes.length > 0 && (
       <div className="page-header">
         <h1>Viajes</h1>
         <div className="page-header-actions">
@@ -103,7 +135,7 @@ export default function ListaViajes() {
           </Link>
         </div>
       </div>
-
+      )}
       {viajes.length === 0 ? (
         <div className="viajes-empty">
           <IconTravel />
@@ -119,12 +151,8 @@ export default function ListaViajes() {
           {viajes.map((v, idx) => {
             const badge = estados[v.estado] || estados.planificado;
             return (
-              <Link
-                key={v.id}
-                to={`/viajes/${v.id}`}
-                className="viaje-card"
-                style={{ animationDelay: `${idx * 0.06}s` }}
-              >
+              <article key={v.id} className="viaje-card" style={{ animationDelay: `${idx * 0.06}s` }}>
+                <Link to={`/viajes/${v.id}`} className="viaje-card-content">
                 <div className="viaje-card-header">
                   <div className="viaje-card-icon">
                     <IconMapPin />
@@ -144,7 +172,19 @@ export default function ListaViajes() {
                     </span>
                   )}
                 </div>
-              </Link>
+                </Link>
+                <div className="viaje-card-actions" aria-label={`Acciones para ${v.destino}`}>
+                  <Link to={`/viajes/${v.id}?editar=1`} className="viaje-card-action" aria-label={`Editar ${v.destino}`} title="Editar" onClick={(e) => e.stopPropagation()}>
+                    <IconEdit />
+                  </Link>
+                  <Link to={`/viajes/${v.id}#itinerario`} className="viaje-card-action" aria-label={`Abrir itinerario de ${v.destino}`} title="Itinerario" onClick={(e) => e.stopPropagation()}>
+                    <IconRoute />
+                  </Link>
+                  <button type="button" className="viaje-card-action viaje-card-action-danger" aria-label={`Eliminar ${v.destino}`} title="Eliminar" onClick={() => eliminarViaje(v.id, v.destino)}>
+                    <IconTrash />
+                  </button>
+                </div>
+              </article>
             );
           })}
         </div>

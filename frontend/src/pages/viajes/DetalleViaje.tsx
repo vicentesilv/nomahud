@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -104,6 +104,7 @@ export default function DetalleViaje() {
   const { confirm, dialog } = useConfirm();
   const { formatear } = useDivisa();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [viaje, setViaje] = useState<Viaje | null>(null);
   const [editando, setEditando] = useState(false);
@@ -129,10 +130,11 @@ export default function DetalleViaje() {
         moneda: data.moneda || 'MXN',
         notas: data.notas || '',
       });
+      if (searchParams.get('editar') === '1') setEditando(true);
     }).catch(() => navigate('/viajes'));
   };
 
-  useEffect(() => { cargarViaje(); }, [id]);
+  useEffect(() => { cargarViaje(); }, [id, searchParams]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -300,7 +302,7 @@ export default function DetalleViaje() {
             </div>
           )}
 
-          <div className="viaje-detalle-section">
+          <div id="itinerario" className="viaje-detalle-section">
             <h3>Itinerario</h3>
 
             {itemError && <div className="error-msg">{itemError}</div>}
