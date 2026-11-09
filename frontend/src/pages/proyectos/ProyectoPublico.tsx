@@ -45,8 +45,8 @@ export default function ProyectoPublico() {
   const [params] = useSearchParams();
   const token = params.get('token') || '';
   const [data, setData] = useState<ProyectoPublico | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(token ? '' : 'Enlace inválido: falta el token');
+  const [loading, setLoading] = useState(Boolean(token));
   const formatear = (monto: number, moneda: string) => {
     try {
       return new Intl.NumberFormat('es-MX', { style: 'currency', currency: moneda || 'USD' }).format(monto);
@@ -56,11 +56,7 @@ export default function ProyectoPublico() {
   };
 
   useEffect(() => {
-    if (!token) {
-      setError('Enlace inválido: falta el token');
-      setLoading(false);
-      return;
-    }
+    if (!token) return;
     api.get(`/proyectos-publico/${token}`)
       .then(({ data }) => {
         setData(data);

@@ -38,28 +38,24 @@ function limpiarSesion() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const [sesionInicial] = useState(() => {
     const storedToken = localStorage.getItem('token');
     const storedUsuario = localStorage.getItem('usuario');
-    if (storedToken && storedUsuario) {
-      try {
-        const parsed = JSON.parse(storedUsuario);
-        if (parsed && typeof parsed === 'object' && typeof parsed.id === 'number') {
-          setToken(storedToken);
-          setUsuario(parsed);
-        } else {
-          limpiarSesion();
-        }
-      } catch {
-        limpiarSesion();
+    if (!storedToken || !storedUsuario) return { token: null, usuario: null };
+    try {
+      const parsed = JSON.parse(storedUsuario);
+      if (parsed && typeof parsed === 'object' && typeof parsed.id === 'number') {
+        return { token: storedToken, usuario: parsed as Usuario };
       }
-    }
-    setLoading(false);
+    } catch { /* sesión inválida */ }
+    limpiarSesion();
+    return { token: null, usuario: null };
+  });
+  const [usuario, setUsuario] = useState<Usuario | null>(sesionInicial.usuario);
+  const [token, setToken] = useState<string | null>(sesionInicial.token);
+  const loading = false;
 
+  useEffect(() => {
     const alRenovar = () => {
       setToken(localStorage.getItem('token'));
       try {
