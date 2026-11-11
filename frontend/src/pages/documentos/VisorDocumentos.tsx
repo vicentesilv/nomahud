@@ -36,6 +36,15 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
   const [wordCount, setWordCount] = useState(0);
   const [paginasExtra, setPaginasExtra] = useState(0);
   const [paginaSeleccionada, setPaginaSeleccionada] = useState(0);
+  const [formatoActivo, setFormatoActivo] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    unordered: false,
+    ordered: false,
+    align: 'left',
+    block: 'p',
+  });
   const editorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -98,6 +107,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     setWordCount(0);
     setPaginasExtra(0);
     setPaginaSeleccionada(0);
+    setFormatoActivo({ bold: false, italic: false, underline: false, unordered: false, ordered: false, align: 'left', block: 'p' });
   }, [doc.id]);
 
   useEffect(() => {
@@ -132,6 +142,29 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     const text = editorRef.current?.innerText || '';
     setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
   };
+
+  const actualizarFormatoActivo = useCallback(() => {
+    const editor = editorRef.current;
+    const seleccion = window.getSelection();
+    if (!editor || !seleccion?.anchorNode || !editor.contains(seleccion.anchorNode)) return;
+    const block = document.queryCommandValue('formatBlock').toLowerCase().replace(/[<>]/g, '') || 'p';
+    const align = document.queryCommandState('justifyCenter') ? 'center' : document.queryCommandState('justifyRight') ? 'right' : 'left';
+    setFormatoActivo({
+      bold: document.queryCommandState('bold'),
+      italic: document.queryCommandState('italic'),
+      underline: document.queryCommandState('underline'),
+      unordered: document.queryCommandState('insertUnorderedList'),
+      ordered: document.queryCommandState('insertOrderedList'),
+      align,
+      block: ['p', 'h1', 'h2', 'h3', 'blockquote'].includes(block) ? block : 'p',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!editando || !esDocx) return;
+    document.addEventListener('selectionchange', actualizarFormatoActivo);
+    return () => document.removeEventListener('selectionchange', actualizarFormatoActivo);
+  }, [editando, esDocx, actualizarFormatoActivo]);
 
   const agregarHoja = () => {
     if (!editorRef.current) return;
@@ -201,14 +234,14 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
 
   const renderBarraFormato = () => {
     if (!editando || !esDocx) return null;
-    const accion = (comando: string, etiqueta: string, icono: string) => (
+    const accion = (comando: string, etiqueta: string, icono: string, activa = false) => (
       <button
         type="button"
-        className="documento-formato-btn"
+        className={`documento-formato-btn ${activa ? 'activo' : ''}`}
         title={etiqueta}
         aria-label={etiqueta}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => aplicarFormato(comando)}
+          onClick={() => { aplicarFormato(comando); actualizarFormatoActivo(); }}
       >
         {icono}
       </button>
@@ -218,8 +251,8 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
         <select
           className="documento-formato-select"
           aria-label="Estilo de texto"
-          defaultValue="p"
-          onChange={(e) => aplicarFormato('formatBlock', e.target.value)}
+          value={formatoActivo.block}
+          onChange={(e) => { aplicarFormato('formatBlock', e.target.value); actualizarFormatoActivo(); }}
         >
           <option value="p">Texto normal</option>
           <option value="h1">Título 1</option>
@@ -228,15 +261,15 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
           <option value="blockquote">Cita</option>
         </select>
         <span className="documento-formato-separador" />
-        {accion('bold', 'Negrita', 'B')}
-        {accion('italic', 'Cursiva', 'I')}
-        {accion('underline', 'Subrayado', 'U')}
+        {accion('bold', 'Negrita', 'B', formatoActivo.bold)}
+        {accion('italic', 'Cursiva', 'I', formatoActivo.italic)}
+        {accion('underline', 'Subrayado', 'U', formatoActivo.underline)}
         <span className="documento-formato-separador" />
-        {accion('insertUnorderedList', 'Lista con viñetas', '•')}
-        {accion('insertOrderedList', 'Lista numerada', '1.')}
-        {accion('justifyLeft', 'Alinear a la izquierda', '≡')}
-        {accion('justifyCenter', 'Centrar', '≡')}
-        {accion('justifyRight', 'Alinear a la derecha', '≡')}
+        {accion('insertUnorderedList', 'Lista con viñetas', '•', formatoActivo.unordered)}
+        {accion('insertOrderedList', 'Lista numerada', '1.', formatoActivo.ordered)}
+        {accion('justifyLeft', 'Alinear a la izquierda', '≡', formatoActivo.align === 'left')}
+        {accion('justifyCenter', 'Centrar', '≡', formatoActivo.align === 'center')}
+        {accion('justifyRight', 'Alinear a la derecha', '≡', formatoActivo.align === 'right')}
         <span className="documento-formato-separador" />
         {accion('undo', 'Deshacer', '↶')}
         {accion('redo', 'Rehacer', '↷')}
@@ -489,11 +522,9 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
       </div>
     );
     if (htmlSeguro) return (
-      <div
-        className="office-preview"
-        dangerouslySetInnerHTML={{ __html: htmlSeguro }}
-        style={{ width: '100%', maxWidth: '100%' }}
-      />
+      <div className="office-preview documento-preview-contenedor">
+        <article className="documento-pagina-a4 documento-vista-previa-a4" dangerouslySetInnerHTML={{ __html: htmlSeguro }} />
+      </div>
     );
     if (esImagen)
       return <img src={url} alt={doc.nombre} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />;
