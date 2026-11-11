@@ -3681,6 +3681,12 @@ body {
   background: color-mix(in srgb, var(--bg-elevated) 90%, var(--primary) 10%);
 }
 
+.documento-preview-pptx {
+  overflow: auto;
+  padding: 1rem 1rem 2rem;
+  background: color-mix(in srgb, var(--bg-elevated) 88%, var(--primary) 12%);
+}
+
 .documento-vista-previa-a4 {
   min-height: 1123px;
   overflow: hidden;
@@ -3758,6 +3764,331 @@ body {
   font-family: Calibri, Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.5;
+}
+
+.pptx-preview-deck {
+  display: grid;
+  gap: 1.5rem;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+
+.pptx-slide-preview,
+.pptx-slide-editor {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  container-type: inline-size;
+  overflow: hidden;
+  background: #fff;
+  color: #111;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.16);
+  isolation: isolate;
+}
+
+.pptx-slide-preview {
+  cursor: default;
+}
+
+.pptx-element,
+.pptx-element-editor {
+  position: absolute;
+  overflow: hidden;
+  transform-origin: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.pptx-element-editor:active,
+.pptx-element-editor.moviendo {
+  cursor: grabbing;
+  z-index: 4;
+}
+
+.pptx-element-text,
+.pptx-element-editor-texto {
+  padding: clamp(0.05rem, 0.32cqw, 0.35rem) clamp(0.08rem, 0.48cqw, 0.5rem);
+  font-family: Calibri, Arial, sans-serif;
+  font-size: clamp(0.58rem, 1.35cqw, 1.15rem);
+  line-height: 1.12;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.pptx-element-text p,
+.pptx-element-editor-texto p {
+  margin: 0;
+}
+
+.pptx-element-image,
+.pptx-element-editor-imagen {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  background: transparent !important;
+}
+
+.pptx-element-image img,
+.pptx-element-editor-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.pptx-editor-documento {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.75rem);
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  padding: 0.25rem 0 1.5rem;
+}
+
+.pptx-slide-editor {
+  flex: 0 0 auto;
+  cursor: default;
+  scroll-margin-top: 1rem;
+}
+
+.pptx-slide-editor:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow), 0 8px 26px rgba(0, 0, 0, 0.16);
+}
+
+.pptx-slide-numero {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.5rem;
+  z-index: 3;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 0.62rem;
+  pointer-events: none;
+}
+
+.pptx-element-editor-texto {
+  outline: none;
+  cursor: text;
+}
+
+.pptx-element-editor-texto:focus {
+  z-index: 2;
+  box-shadow: inset 0 0 0 2px var(--primary);
+  background: color-mix(in srgb, #fff 92%, var(--primary) 8%);
+}
+
+.pptx-presentacion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem;
+  background: #05070d;
+  color: #fff;
+}
+
+.pptx-presentacion-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.25rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.8rem;
+}
+
+.pptx-presentacion-barra span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pptx-presentacion-barra button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pptx-presentacion-barra button:hover,
+.pptx-presentacion-barra button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pptx-presentacion-lienzo {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  place-items: center;
+  padding: 0.5rem;
+}
+
+.pptx-presentacion-slide {
+  position: relative;
+  width: auto;
+  height: min(100%, calc(100vh - 7rem));
+  max-width: 100%;
+  container-type: inline-size;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.45);
+  isolation: isolate;
+}
+
+.pptx-presentacion-elemento {
+  position: absolute;
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.pptx-presentacion-texto {
+  padding: clamp(0.05rem, 0.32cqw, 0.35rem) clamp(0.08rem, 0.48cqw, 0.5rem);
+  font-family: Calibri, Arial, sans-serif;
+  font-size: clamp(0.58rem, 1.35cqw, 1.15rem);
+  line-height: 1.12;
+  color: #111827;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.pptx-presentacion-texto p {
+  margin: 0;
+}
+
+.pptx-presentacion-imagen {
+  display: flex;
+  background: transparent !important;
+}
+
+.pptx-presentacion-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pptx-presentacion-controles {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.pptx-presentacion-controles button {
+  width: 2.6rem;
+  height: 2.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pptx-presentacion-controles button:hover:not(:disabled),
+.pptx-presentacion-controles button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.pptx-presentacion-controles button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+@media (max-width: 768px) {
+  .pptx-presentacion-overlay {
+    padding: 0.5rem;
+  }
+
+  .pptx-presentacion-barra {
+    min-height: 2rem;
+    font-size: 0.68rem;
+  }
+
+  .pptx-presentacion-slide {
+    border-radius: 4px;
+  }
+
+  .pptx-presentacion-controles button {
+    width: 2.35rem;
+    height: 2rem;
+  }
+}
+
+.pptx-element-editor-texto.moviendo {
+  user-select: none;
+}
+
+.documento-miniatura-diapositiva {
+  display: block;
+  position: relative;
+  width: 108px;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  color: #1f2937;
+  text-align: left;
+  container-type: inline-size;
+}
+
+.pptx-miniatura-lienzo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+.pptx-miniatura-elemento {
+  position: absolute;
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.pptx-miniatura-texto {
+  padding: 0.25cqw 0.4cqw;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: clamp(0.18rem, 1.35cqw, 0.7rem);
+  line-height: 1.1;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.pptx-miniatura-texto p {
+  margin: 0;
+}
+
+.pptx-miniatura-imagen {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  background: transparent !important;
+}
+
+.pptx-miniatura-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.documento-miniatura-diapositiva .documento-miniatura-numero {
+  bottom: 0.2rem;
 }
 
 .documento-editor-hoja-titulo {
@@ -5891,6 +6222,10 @@ body {
   .visor-editor-con-panel .documento-miniatura-hoja {
     width: 72px;
     height: 92px;
+  }
+
+  .visor-editor-con-panel .documento-miniatura-diapositiva {
+    height: auto;
   }
 
   .visor-editor-con-panel .documento-agregar-hoja {

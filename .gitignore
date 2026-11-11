@@ -153,3 +153,6 @@ frontend/*.pid
 frontend/*.pid.lock
 frontend/.npm
 frontend/dist
+
+# Local Netlify folder
+.netlify
