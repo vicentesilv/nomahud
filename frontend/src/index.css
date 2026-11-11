@@ -3428,6 +3428,10 @@ body {
   transition: border-color var(--transition), background var(--transition), transform var(--transition);
 }
 
+.documento-miniatura-item {
+  position: relative;
+}
+
 .documento-miniatura:hover,
 .documento-miniatura.activa {
   border-color: var(--primary);
@@ -3474,6 +3478,35 @@ body {
 .documento-miniatura-etiqueta {
   margin-top: 0.35rem;
   font-size: 0.68rem;
+}
+
+.documento-eliminar-pagina {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: var(--error-bg);
+  color: var(--error);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity var(--transition), transform var(--transition), border-color var(--transition);
+}
+
+.documento-miniatura-item:hover .documento-eliminar-pagina,
+.documento-eliminar-pagina:focus-visible {
+  opacity: 1;
+}
+
+.documento-eliminar-pagina:hover {
+  border-color: var(--error);
+  transform: scale(1.1);
 }
 
 .visor-contenido-editando {
@@ -3593,7 +3626,9 @@ body {
 }
 
 .documento-editor-docx {
-  min-height: 52vh;
+  min-height: 1123px;
+  max-width: 794px;
+  margin: 0 auto;
   background: #fff;
   color: #111;
   border: 1px solid var(--border);
@@ -3603,6 +3638,56 @@ body {
   font-size: 11pt;
   line-height: 1.6;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.documento-documento-a4 {
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.documento-pagina-inicial {
+  min-height: 1123px;
+  max-width: 794px;
+  margin: 0 auto;
+  padding: 2rem clamp(1rem, 5vw, 4rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: #111;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  outline: none;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+}
+
+.documento-pagina-a4 {
+  width: 100%;
+  min-height: 1123px;
+  max-width: 794px;
+  margin: 1.25rem auto 0;
+  padding: 2rem clamp(1rem, 5vw, 4rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: #111;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  outline: none;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+}
+
+.documento-pagina-nueva:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow), 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
 .documento-editor-docx h1,
@@ -5717,6 +5802,33 @@ body {
       font-size: 1rem;
     }
   }
+}
+
+.documento-agregar-hoja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  transition: all var(--transition);
+}
+
+.documento-agregar-hoja span {
+  font-size: 1.1rem;
+}
+
+.documento-agregar-hoja:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-glow);
 }
 
 /* ===== EQUIPO ===== */

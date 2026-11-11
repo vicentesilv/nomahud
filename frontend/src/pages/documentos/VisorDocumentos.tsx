@@ -34,6 +34,8 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
   const [editMsg, setEditMsg] = useState('');
   const [zoom, setZoom] = useState(100);
   const [wordCount, setWordCount] = useState(0);
+  const [paginasExtra, setPaginasExtra] = useState(0);
+  const [paginaSeleccionada, setPaginaSeleccionada] = useState(0);
   const editorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -94,7 +96,18 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     setEditMsg('');
     setZoom(100);
     setWordCount(0);
+    setPaginasExtra(0);
+    setPaginaSeleccionada(0);
   }, [doc.id]);
+
+  useEffect(() => {
+    if (editando && esDocx && editorRef.current && !editorRef.current.dataset.inicializado) {
+      const contenido = htmlSeguro || '<p></p>';
+      editorRef.current.innerHTML = `<div class="documento-pagina-a4 documento-pagina-inicial" contenteditable="true" aria-label="Página 1">${contenido}</div>`;
+      editorRef.current.dataset.inicializado = 'true';
+      actualizarEstadisticas();
+    }
+  }, [editando, esDocx, htmlSeguro]);
 
   const cancelarEdicion = () => {
     setEditando(false);
@@ -102,6 +115,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     setEditWorkbook(null);
     setEditPptx(null);
     setEditMsg('');
+    if (editorRef.current) delete editorRef.current.dataset.inicializado;
   };
 
   const aplicarFormato = (comando: string, valor?: string) => {
@@ -119,30 +133,68 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
   };
 
+  const agregarHoja = () => {
+    if (!editorRef.current) return;
+    const hoja = document.createElement('div');
+    hoja.className = 'documento-pagina-a4 documento-pagina-nueva';
+    hoja.contentEditable = 'true';
+    hoja.setAttribute('aria-label', 'Nueva hoja del documento');
+    hoja.innerHTML = '<p><br></p>';
+    editorRef.current.appendChild(hoja);
+    setPaginasExtra((cantidad) => cantidad + 1);
+    setPaginaSeleccionada(paginasExtra + 1);
+    hoja.focus();
+  };
+
+  const eliminarHoja = (index: number) => {
+    if (!editorRef.current || index === 0) return;
+    const hoja = editorRef.current.querySelectorAll('.documento-pagina-nueva')[index - 1];
+    hoja?.remove();
+    setPaginasExtra((cantidad) => Math.max(0, cantidad - 1));
+    setPaginaSeleccionada((actual) => actual >= index ? Math.max(0, actual - 1) : actual);
+  };
+
   const renderPanelPaginas = () => {
     if (!editando || !esDocx) return null;
-    const paginas = Math.max(1, Math.ceil(wordCount / 350));
+    const paginas = 1 + paginasExtra;
     return (
       <aside className="documento-panel-paginas" aria-label="Miniaturas de páginas">
         <div className="documento-panel-paginas-titulo">Páginas</div>
         {Array.from({ length: paginas }, (_, index) => (
-          <button
-            key={index}
-            type="button"
-            className={`documento-miniatura ${index === 0 ? 'activa' : ''}`}
-            title={`Ir a la página ${index + 1}`}
-            onClick={() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          >
-            <span className="documento-miniatura-hoja">
-              <span className="documento-miniatura-linea larga" />
-              <span className="documento-miniatura-linea" />
-              <span className="documento-miniatura-linea" />
-              <span className="documento-miniatura-linea corta" />
-              <span className="documento-miniatura-numero">{index + 1}</span>
-            </span>
-            <span className="documento-miniatura-etiqueta">Página {index + 1}</span>
-          </button>
+          <div key={index} className="documento-miniatura-item">
+            <button
+              type="button"
+              className={`documento-miniatura ${index === paginaSeleccionada ? 'activa' : ''}`}
+              title={`Ir a la página ${index + 1}`}
+              onClick={() => {
+                const pagina = index === 0
+                  ? editorRef.current
+                  : editorRef.current?.querySelectorAll('.documento-pagina-nueva')[index - 1];
+                if (pagina instanceof HTMLElement) {
+                  setPaginaSeleccionada(index);
+                  pagina.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  pagina.focus();
+                }
+              }}
+            >
+              <span className="documento-miniatura-hoja">
+                <span className="documento-miniatura-linea larga" />
+                <span className="documento-miniatura-linea" />
+                <span className="documento-miniatura-linea" />
+                <span className="documento-miniatura-linea corta" />
+                <span className="documento-miniatura-numero">{index + 1}</span>
+              </span>
+              <span className="documento-miniatura-etiqueta">Página {index + 1}</span>
+            </button>
+            {index > 0 && (
+              <button type="button" className="documento-eliminar-pagina" title={`Eliminar página ${index + 1}`} aria-label={`Eliminar página ${index + 1}`} onClick={() => eliminarHoja(index)}>×</button>
+            )}
+          </div>
         ))}
+        <button type="button" className="documento-agregar-hoja" onClick={agregarHoja}>
+          <span>＋</span>
+          Agregar página
+        </button>
       </aside>
     );
   };
@@ -301,6 +353,8 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
                   rows.push(new docx.TableRow({ children: cells }));
                 }
                 if (rows.length) children.push(new docx.Table({ rows }));
+              } else {
+                children.push(...parseNode(el));
               }
             }
           }
@@ -350,16 +404,14 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     }
 
     if (editando && esDocx) {
-      const initialHtml = htmlSeguro || '<p></p>';
       return (
         <div
           ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          dangerouslySetInnerHTML={{ __html: initialHtml }}
-          className="documento-editor documento-editor-docx"
+          className="documento-editor documento-editor-docx documento-documento-a4"
           onInput={actualizarEstadisticas}
           style={{ zoom: `${zoom}%` }}
+          role="document"
+          aria-label="Documento DOCX"
         />
       );
     }
