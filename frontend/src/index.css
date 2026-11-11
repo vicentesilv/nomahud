@@ -3256,6 +3256,18 @@ body {
   flex-shrink: 0;
 }
 
+.documento-card-actions .btn-icon-only-sm {
+  border-radius: 9px;
+  transition: transform var(--transition), color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.documento-card-actions .btn-icon-only-sm:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 /* Viewport */
 .visor-pagina {
   display: flex;
@@ -3275,6 +3287,18 @@ body {
   flex-wrap: wrap;
 }
 
+.visor-toolbar-editando {
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-card));
+  border-bottom-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+
+.visor-identidad {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
 .visor-titulo {
   font-size: 0.9rem;
   font-weight: 600;
@@ -3284,11 +3308,63 @@ body {
   white-space: nowrap;
 }
 
+.visor-tipo,
+.visor-estado-edicion {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.visor-tipo {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.visor-estado-edicion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--warning);
+  background: var(--warning-bg);
+  letter-spacing: normal;
+}
+
+.visor-estado-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+
 .visor-acciones {
   display: flex;
   gap: 0.4rem;
   align-items: center;
   flex-shrink: 0;
+}
+
+.visor-guardando {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.visor-btn-guardar,
+.visor-btn-edicion {
+  width: auto !important;
+  min-height: 34px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.visor-btn-guardar:disabled,
+.visor-btn-edicion:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .visor-msg {
@@ -3300,6 +3376,283 @@ body {
   flex: 1;
   overflow: auto;
   padding: 1rem;
+}
+
+.visor-editor-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.visor-editor-layout > .visor-contenido {
+  flex: 1;
+  min-width: 0;
+}
+
+.visor-editor-con-panel {
+  background: color-mix(in srgb, var(--bg-elevated) 90%, var(--primary) 10%);
+}
+
+.documento-panel-paginas {
+  width: 172px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 1rem 0.75rem;
+  border-left: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--primary) 8%);
+}
+
+.documento-panel-paginas-titulo {
+  margin: 0 0 0.75rem 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.documento-miniatura {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0.9rem;
+  padding: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.documento-miniatura:hover,
+.documento-miniatura.activa {
+  border-color: var(--primary);
+  background: var(--primary-glow);
+}
+
+.documento-miniatura:hover {
+  transform: translateY(-2px);
+}
+
+.documento-miniatura-hoja {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 108px;
+  height: 136px;
+  padding: 1rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+.documento-miniatura-linea {
+  display: block;
+  width: 85%;
+  height: 4px;
+  border-radius: 2px;
+  background: #cbd5e1;
+}
+
+.documento-miniatura-linea.larga { width: 100%; height: 7px; background: #94a3b8; }
+.documento-miniatura-linea.corta { width: 58%; }
+
+.documento-miniatura-numero {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.35rem;
+  color: #94a3b8;
+  font-size: 0.55rem;
+}
+
+.documento-miniatura-etiqueta {
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+}
+
+.visor-contenido-editando {
+  background: color-mix(in srgb, var(--bg-elevated) 88%, var(--primary) 12%);
+}
+
+.documento-formato-barra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.45rem 1rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  z-index: 2;
+}
+
+.documento-formato-btn,
+.documento-formato-select {
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.documento-formato-btn {
+  min-width: 30px;
+  padding: 0 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.documento-formato-btn:nth-of-type(2) { font-style: italic; }
+.documento-formato-btn:nth-of-type(3) { text-decoration: underline; }
+
+.documento-formato-btn:hover,
+.documento-formato-btn:focus-visible,
+.documento-formato-select:hover,
+.documento-formato-select:focus-visible {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--bg-card-hover);
+  outline: none;
+}
+
+.documento-formato-select {
+  min-width: 125px;
+  padding: 0 0.45rem;
+  color: var(--text);
+}
+
+.documento-formato-separador {
+  width: 1px;
+  height: 20px;
+  margin: 0 0.2rem;
+  background: var(--border);
+}
+
+.documento-formato-spacer {
+  flex: 1;
+}
+
+.documento-zoom-label {
+  min-width: 42px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.documento-editor-estado {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 30px;
+  padding: 0.35rem 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+}
+
+.documento-editor-estado span:first-child {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.documento-formato-enlace {
+  font-size: 1rem;
+}
+
+.documento-editor {
+  width: 100%;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.documento-editor:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.documento-editor-texto {
+  min-height: 52vh;
+  resize: vertical;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.documento-editor-docx {
+  min-height: 52vh;
+  background: #fff;
+  color: #111;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem clamp(1rem, 5vw, 4rem);
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.documento-editor-docx h1,
+.documento-editor-docx h2,
+.documento-editor-docx h3 {
+  color: #1f2937;
+  margin: 1rem 0 0.5rem;
+}
+
+.documento-editor-docx blockquote {
+  margin: 1rem 0;
+  padding: 0.65rem 1rem;
+  border-left: 4px solid #7c3aed;
+  color: #4b5563;
+  background: #f3f4f6;
+}
+
+.documento-editor-docx a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.documento-editor-slide {
+  min-height: 150px;
+  background: #fff;
+  color: #111;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.documento-editor-hoja-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.65rem;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.documento-editor-hoja-titulo::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
 }
 
 /* Modal */
@@ -5331,6 +5684,21 @@ body {
     width: 100%;
     overflow-x: auto;
     flex-wrap: wrap;
+  }
+
+  .documento-panel-paginas {
+    width: 112px;
+    padding: 0.65rem 0.4rem;
+  }
+
+  .documento-miniatura-hoja {
+    width: 78px;
+    height: 100px;
+    padding: 0.65rem 0.5rem;
+  }
+
+  .documento-miniatura-etiqueta {
+    font-size: 0.6rem;
   }
 
   .visor-modal {

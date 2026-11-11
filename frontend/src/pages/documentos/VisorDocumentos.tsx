@@ -32,6 +32,8 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
   const [editPptx, setEditPptx] = useState<{ buffer: ArrayBuffer; slideFiles: string[]; slideContents: string[] } | null>(null);
   const [saving, setSaving] = useState(false);
   const [editMsg, setEditMsg] = useState('');
+  const [zoom, setZoom] = useState(100);
+  const [wordCount, setWordCount] = useState(0);
   const editorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -90,6 +92,8 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     setEditWorkbook(null);
     setEditPptx(null);
     setEditMsg('');
+    setZoom(100);
+    setWordCount(0);
   }, [doc.id]);
 
   const cancelarEdicion = () => {
@@ -98,6 +102,99 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
     setEditWorkbook(null);
     setEditPptx(null);
     setEditMsg('');
+  };
+
+  const aplicarFormato = (comando: string, valor?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(comando, false, valor);
+  };
+
+  const insertarEnlace = () => {
+    const url = window.prompt('URL del enlace');
+    if (url && /^(https?:|mailto:)/i.test(url)) aplicarFormato('createLink', url);
+  };
+
+  const actualizarEstadisticas = () => {
+    const text = editorRef.current?.innerText || '';
+    setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+  };
+
+  const renderPanelPaginas = () => {
+    if (!editando || !esDocx) return null;
+    const paginas = Math.max(1, Math.ceil(wordCount / 350));
+    return (
+      <aside className="documento-panel-paginas" aria-label="Miniaturas de páginas">
+        <div className="documento-panel-paginas-titulo">Páginas</div>
+        {Array.from({ length: paginas }, (_, index) => (
+          <button
+            key={index}
+            type="button"
+            className={`documento-miniatura ${index === 0 ? 'activa' : ''}`}
+            title={`Ir a la página ${index + 1}`}
+            onClick={() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
+            <span className="documento-miniatura-hoja">
+              <span className="documento-miniatura-linea larga" />
+              <span className="documento-miniatura-linea" />
+              <span className="documento-miniatura-linea" />
+              <span className="documento-miniatura-linea corta" />
+              <span className="documento-miniatura-numero">{index + 1}</span>
+            </span>
+            <span className="documento-miniatura-etiqueta">Página {index + 1}</span>
+          </button>
+        ))}
+      </aside>
+    );
+  };
+
+  const renderBarraFormato = () => {
+    if (!editando || !esDocx) return null;
+    const accion = (comando: string, etiqueta: string, icono: string) => (
+      <button
+        type="button"
+        className="documento-formato-btn"
+        title={etiqueta}
+        aria-label={etiqueta}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => aplicarFormato(comando)}
+      >
+        {icono}
+      </button>
+    );
+    return (
+      <div className="documento-formato-barra" role="toolbar" aria-label="Herramientas de formato">
+        <select
+          className="documento-formato-select"
+          aria-label="Estilo de texto"
+          defaultValue="p"
+          onChange={(e) => aplicarFormato('formatBlock', e.target.value)}
+        >
+          <option value="p">Texto normal</option>
+          <option value="h1">Título 1</option>
+          <option value="h2">Título 2</option>
+          <option value="h3">Título 3</option>
+          <option value="blockquote">Cita</option>
+        </select>
+        <span className="documento-formato-separador" />
+        {accion('bold', 'Negrita', 'B')}
+        {accion('italic', 'Cursiva', 'I')}
+        {accion('underline', 'Subrayado', 'U')}
+        <span className="documento-formato-separador" />
+        {accion('insertUnorderedList', 'Lista con viñetas', '•')}
+        {accion('insertOrderedList', 'Lista numerada', '1.')}
+        {accion('justifyLeft', 'Alinear a la izquierda', '≡')}
+        {accion('justifyCenter', 'Centrar', '≡')}
+        {accion('justifyRight', 'Alinear a la derecha', '≡')}
+        <span className="documento-formato-separador" />
+        {accion('undo', 'Deshacer', '↶')}
+        {accion('redo', 'Rehacer', '↷')}
+        <button type="button" className="documento-formato-btn documento-formato-enlace" title="Insertar enlace" aria-label="Insertar enlace" onMouseDown={(e) => e.preventDefault()} onClick={insertarEnlace}>↗</button>
+        <span className="documento-formato-spacer" />
+        <button type="button" className="documento-formato-btn" title="Reducir zoom" aria-label="Reducir zoom" onClick={() => setZoom((value) => Math.max(75, value - 10))}>−</button>
+        <span className="documento-zoom-label">{zoom}%</span>
+        <button type="button" className="documento-formato-btn" title="Aumentar zoom" aria-label="Aumentar zoom" onClick={() => setZoom((value) => Math.min(150, value + 10))}>＋</button>
+      </div>
+    );
   };
 
   const guardar = async () => {
@@ -247,12 +344,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
           ref={textareaRef}
           defaultValue={editContent}
           onChange={(e) => setEditContent(e.target.value)}
-          style={{
-            width: '100%', height: '100%', minHeight: '400px',
-            background: '#0d0d0d', color: '#e0e0e0', border: '1px solid var(--border)',
-            borderRadius: '8px', padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem',
-            resize: 'none', outline: 'none',
-          }}
+          className="documento-editor documento-editor-texto"
         />
       );
     }
@@ -265,14 +357,9 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
           contentEditable
           suppressContentEditableWarning
           dangerouslySetInnerHTML={{ __html: initialHtml }}
-          style={{
-            width: '100%', minHeight: '400px',
-            background: '#fff', color: '#111',
-            border: '1px solid var(--border)', borderRadius: '8px',
-            padding: '1rem', outline: 'none',
-            fontFamily: 'Calibri, Arial, sans-serif', fontSize: '11pt',
-            lineHeight: '1.5',
-          }}
+          className="documento-editor documento-editor-docx"
+          onInput={actualizarEstadisticas}
+          style={{ zoom: `${zoom}%` }}
         />
       );
     }
@@ -287,7 +374,7 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
             const range = XLSX.utils.decode_range(ref);
             return (
               <div key={name} style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}>{name}</h4>
+                <h4 className="documento-editor-hoja-titulo">{name}</h4>
                 <table style={{ borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <tbody>
                     {Array.from({ length: range.e.r - range.s.r + 1 }, (_, ri) => (
@@ -329,19 +416,12 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
         <div ref={editorRef} style={{ overflow: 'auto', width: '100%' }}>
           {editPptx.slideContents.map((content, i) => (
             <div key={i} style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}>Diapositiva {i + 1}</h4>
+                  <h4 className="documento-editor-hoja-titulo">Diapositiva {i + 1}</h4>
               <div
                 contentEditable
                 suppressContentEditableWarning
                 data-slide={i}
-                style={{
-                  width: '100%', minHeight: '120px',
-                  background: '#fff', color: '#111',
-                  border: '1px solid var(--border)', borderRadius: '8px',
-                  padding: '1rem', outline: 'none',
-                  fontFamily: 'Calibri, Arial, sans-serif',
-                  fontSize: '11pt', lineHeight: '1.5',
-                }}
+                className="documento-editor documento-editor-slide"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.replace(/\n/g, '<br>')) }}
               />
             </div>
@@ -383,40 +463,55 @@ export default function VisorDocumentos({ doc, url, html, loading, error, mode, 
 
   return mode === 'pagina' ? (
     <div className="visor-pagina">
-      <div className="visor-toolbar">
-        <strong className="visor-titulo">{doc.nombre}</strong>
+      <div className={`visor-toolbar ${editando ? 'visor-toolbar-editando' : ''}`}>
+        <div className="visor-identidad">
+          <strong className="visor-titulo">{doc.nombre}</strong>
+          <span className="visor-tipo">{ext?.toUpperCase() || 'ARCHIVO'}</span>
+          {editando && <span className="visor-estado-edicion"><span className="visor-estado-punto" /> Editando</span>}
+        </div>
         <div className="visor-acciones">
           {editMsg && <span className="visor-msg">{editMsg}</span>}
-          {saving && <span className="loading" style={{ fontSize: '0.85rem' }}>Guardando...</span>}
+          {saving && <span className="visor-guardando">Guardando cambios...</span>}
           {editando ? (
             <>
-              <button onClick={guardar} className="btn-primary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
+              <button onClick={guardar} disabled={saving} className="btn-primary visor-btn-guardar">
                 Guardar
               </button>
-              <button onClick={cancelarEdicion} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
+              <button onClick={cancelarEdicion} disabled={saving} className="btn-secondary visor-btn-edicion">
                 Cancelar
               </button>
             </>
           ) : (
             <>
               {puedeEditar && (
-                <button onClick={iniciarEdicion} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
+                <button onClick={iniciarEdicion} className="btn-secondary visor-btn-edicion">
                   Editar
                 </button>
               )}
-              <button onClick={() => onDownload(doc)} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
+              <button onClick={() => onDownload(doc)} className="btn-secondary visor-btn-edicion">
                 Descargar
               </button>
             </>
           )}
-          <button onClick={onClose} className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.82rem', width: 'auto' }}>
+          <button onClick={onClose} className="btn-secondary visor-btn-edicion">
             Volver
           </button>
         </div>
       </div>
-      <div className="visor-contenido">
-        {renderContenido()}
+      {renderBarraFormato()}
+      <div className={`visor-editor-layout ${editando && esDocx ? 'visor-editor-con-panel' : ''}`}>
+        <div className={`visor-contenido ${editando ? 'visor-contenido-editando' : ''}`}>
+          {renderContenido()}
+        </div>
+        {renderPanelPaginas()}
       </div>
+      {editando && esDocx && (
+        <div className="documento-editor-estado">
+          <span>{wordCount} {wordCount === 1 ? 'palabra' : 'palabras'}</span>
+          <span>{zoom}% de zoom</span>
+          <span>Los cambios se guardan al pulsar Guardar</span>
+        </div>
+      )}
     </div>
   ) : (
     <div className="visor-modal-overlay" onClick={onClose}>
