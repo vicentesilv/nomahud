@@ -5251,6 +5251,8 @@ body {
 
   .main-content {
     padding-bottom: 5.5rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
   }
 
   .main-content.sidebar-collapsed {
@@ -5809,6 +5811,93 @@ body {
     flex-wrap: wrap;
   }
 
+  .documento-formato-barra {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding: 0.4rem 0.65rem;
+  }
+
+  .documento-formato-spacer {
+    display: none;
+  }
+
+  .documento-editor-estado {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+  }
+
+  .documento-editor-docx,
+  .documento-pagina-inicial,
+  .documento-pagina-a4,
+  .documento-vista-previa-a4 {
+    min-height: 760px;
+  }
+
+  .documento-pagina-inicial,
+  .documento-pagina-a4,
+  .documento-vista-previa-a4 {
+    padding: 1.25rem;
+    border-radius: 8px;
+  }
+
+  .visor-editor-layout {
+    overflow-x: auto;
+  }
+
+  .visor-editor-con-panel .visor-contenido {
+    min-width: 0;
+  }
+
+  .visor-editor-con-panel {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .visor-editor-con-panel .visor-contenido {
+    flex: 0 0 auto;
+    width: 100%;
+    overflow: visible;
+  }
+
+  .visor-editor-con-panel .documento-panel-paginas {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 0.65rem;
+  }
+
+  .visor-editor-con-panel .documento-panel-paginas-titulo {
+    align-self: center;
+    min-width: max-content;
+    margin: 0 0.25rem 0 0;
+  }
+
+  .visor-editor-con-panel .documento-miniatura-item {
+    flex: 0 0 86px;
+  }
+
+  .visor-editor-con-panel .documento-miniatura {
+    margin-bottom: 0;
+  }
+
+  .visor-editor-con-panel .documento-miniatura-hoja {
+    width: 72px;
+    height: 92px;
+  }
+
+  .visor-editor-con-panel .documento-agregar-hoja {
+    flex: 0 0 110px;
+    align-self: center;
+  }
+
   .documento-panel-paginas {
     width: 112px;
     padding: 0.65rem 0.4rem;
@@ -5839,6 +5928,79 @@ body {
       height: 38px;
       font-size: 1rem;
     }
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .stat-card {
+    min-height: 72px;
+    padding: 0.8rem;
+  }
+
+  .stat-value {
+    max-width: 100%;
+    font-size: 1.15rem;
+    overflow-wrap: anywhere;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+  }
+
+  .dashboard-card-header {
+    align-items: flex-start;
+  }
+
+  .dashboard-card-header h3 {
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+
+  .dashboard-list-item {
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.7rem 0;
+  }
+
+  .dashboard-list-item-main {
+    min-width: 0;
+  }
+
+  .dashboard-list-item-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .priority-badge {
+    flex-shrink: 0;
+    font-size: 0.6rem;
+  }
+
+  .chart-bars {
+    gap: 0.7rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .chart-bar-value {
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.58rem;
+  }
+
+  .dashboard-finanzas .finanzas-card {
+    min-width: 0;
+  }
+
+  .finanzas-value {
+    font-size: 1.05rem;
+    overflow-wrap: anywhere;
   }
 }
 
