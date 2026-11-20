@@ -8,6 +8,7 @@ const Register = lazy(() => import('./pages/Register'));
 const OlvideContrasena = lazy(() => import('./pages/OlvideContrasena'));
 const RestablecerContrasena = lazy(() => import('./pages/RestablecerContrasena'));
 const ConfirmarCuenta = lazy(() => import('./pages/ConfirmarCuenta'));
+const AuthGoogleCallback = lazy(() => import('./pages/AuthGoogleCallback'));
 const MiPerfil = lazy(() => import('./pages/perfiles/MiPerfil'));
 const PerfilPublico = lazy(() => import('./pages/perfiles/PerfilPublico'));
 const ListaProyectos = lazy(() => import('./pages/proyectos/ListaProyectos'));
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/olvide-contrasena" element={<OlvideContrasena />} />
           <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
           <Route path="/confirmar-cuenta" element={<ConfirmarCuenta />} />
+          <Route path="/auth/google/callback" element={<AuthGoogleCallback />} />
           <Route path="/proyectos/invitacion" element={<AceptarInvitacion />} />
           <Route path="/proyecto-publico" element={<ProyectoPublico />} />
           <Route element={<ProtectedRoute />}>

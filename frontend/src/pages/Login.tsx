@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { backendUrl } from '../services/api';
 
 export default function Login() {
   const [correo, setCorreo] = useState('');
@@ -9,6 +10,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -51,7 +53,7 @@ export default function Login() {
           <p>Tu centro de control nómada digital</p>
         </div>
         <form onSubmit={handleSubmit} noValidate>
-          {error && <div className="error-msg">{error}</div>}
+          {(error || searchParams.get('googleError')) && <div className="error-msg">{error || searchParams.get('googleError')}</div>}
           <div className="field">
             <label htmlFor="correo">Correo electrónico</label>
             <div className="input-wrapper">
@@ -111,6 +113,11 @@ export default function Login() {
             {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+        <div className="auth-divider"><span>o</span></div>
+        <a href={backendUrl('/auth/google')} className="btn-google">
+          <span className="google-mark" aria-hidden="true">G</span>
+          Continuar con Google
+        </a>
         <p className="auth-link">
           ¿No tienes cuenta? <Link to="/registro">Regístrate</Link>
         </p>

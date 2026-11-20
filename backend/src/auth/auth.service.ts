@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { PerfilesService } from '../perfiles/perfiles.service';
@@ -134,6 +134,105 @@ export class AuthService {
             token,
             refreshToken: await this.emitirRefreshToken(usuarioSinContrasena.id),
             usuario: usuarioSinContrasena,
+        };
+    }
+
+    private googleConfig(): { clientId: string; clientSecret: string; callbackUrl: string } {
+        const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID')?.trim();
+        const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET')?.trim();
+        if (!clientId || !clientSecret) {
+            throw new ServiceUnavailableException('El inicio de sesión con Google no está configurado');
+        }
+
+        const backendUrl = this.configService.get<string>('BACKEND_URL')?.trim() || 'http://localhost:3001';
+        const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL')?.trim()
+            || `${backendUrl.replace(/\/$/, '')}/auth/google/callback`;
+        return { clientId, clientSecret, callbackUrl };
+    }
+
+    getGoogleAuthorizationUrl(state: string): string {
+        const { clientId, callbackUrl } = this.googleConfig();
+        const params = new URLSearchParams({
+            client_id: clientId,
+            redirect_uri: callbackUrl,
+            response_type: 'code',
+            scope: 'openid email profile',
+            state,
+            prompt: 'select_account',
+        });
+        return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    }
+
+    async loginWithGoogle(code: string): Promise<{ token: string; refreshToken: string; usuario: any }> {
+        const { clientId, clientSecret, callbackUrl } = this.googleConfig();
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code,
+                client_id: clientId,
+                client_secret: clientSecret,
+                redirect_uri: callbackUrl,
+                grant_type: 'authorization_code',
+            }).toString(),
+        });
+        const tokenData = await tokenResponse.json() as { access_token?: string };
+        if (!tokenResponse.ok || !tokenData.access_token) {
+            throw new UnauthorizedException('Google no pudo validar la autorización');
+        }
+
+        const profileResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        const profile = await profileResponse.json() as {
+            sub?: string;
+            email?: string;
+            email_verified?: boolean;
+            name?: string;
+        };
+        if (!profileResponse.ok || !profile.sub || !profile.email || profile.email_verified !== true) {
+            throw new UnauthorizedException('La cuenta de Google no tiene un correo verificado');
+        }
+
+        const correo = profile.email.trim().toLowerCase();
+        let usuario = await this.usuariosService.findByGoogleId(profile.sub);
+        if (!usuario) {
+            usuario = await this.usuariosService.findByEmail(correo);
+            if (usuario?.googleId && usuario.googleId !== profile.sub) {
+                throw new BadRequestException('El correo ya está vinculado a otra cuenta de Google');
+            }
+        }
+
+        if (!usuario) {
+            const contrasena = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+            const creado = await this.usuariosService.createUsuario({
+                nombre: (profile.name || correo.split('@')[0]).slice(0, 150),
+                correo,
+                contrasena,
+            });
+            await this.usuariosService.marcarEmailVerificado(creado.id);
+            await this.usuariosService.asociarGoogle(creado.id, profile.sub);
+            await this.perfilesService.findOrCreate(creado.id);
+            usuario = await this.usuariosService.findById(creado.id);
+        } else {
+            if (usuario.estadoCuenta === 'bloqueada') {
+                throw new UnauthorizedException('La cuenta está bloqueada');
+            }
+            if (!usuario.emailVerificado || usuario.estadoCuenta !== 'activa') {
+                await this.usuariosService.marcarEmailVerificado(usuario.id);
+            }
+            if (!usuario.googleId) {
+                await this.usuariosService.asociarGoogle(usuario.id, profile.sub);
+            }
+            usuario = await this.usuariosService.findById(usuario.id);
+        }
+
+        if (!usuario) throw new UnauthorizedException('No se pudo crear la cuenta');
+        const { contrasena: _, googleId: __, ...usuarioSinCredenciales } = usuario as Usuario & { contrasena?: string; googleId?: string | null };
+        return {
+            token: this.generateToken(usuario.id, usuario.correo),
+            refreshToken: await this.emitirRefreshToken(usuario.id),
+            usuario: usuarioSinCredenciales,
         };
     }
 

@@ -14,6 +14,9 @@ export class Usuario {
 
     @Column({ type: 'varchar', length: 255, unique: true })
     correo: string;
+
+    @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
+    googleId?: string | null;
     
     @Column({ type: 'varchar', length: 255, nullable: false, select: false })
     contrasena: string;

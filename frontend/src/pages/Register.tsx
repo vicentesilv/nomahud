@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { backendUrl } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -182,6 +182,15 @@ export default function Register() {
             {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
           </button>
         </form>
+        {!invitacionToken && (
+          <>
+            <div className="auth-divider"><span>o</span></div>
+            <a href={backendUrl('/auth/google')} className="btn-google">
+              <span className="google-mark" aria-hidden="true">G</span>
+              Registrarte con Google
+            </a>
+          </>
+        )}
         <p className="auth-link">
           ¿Ya tienes cuenta? <Link to="/inicio-sesion">Inicia sesión</Link>
         </p>

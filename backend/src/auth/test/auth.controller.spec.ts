@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
 
@@ -21,10 +22,16 @@ describe('AuthController', () => {
 						solicitarRecuperacion: jest.fn(),
 						restablecerContrasena: jest.fn(),
 						renovar: jest.fn(),
-						cerrarSesion: jest.fn(),
-						completarRegistro: jest.fn(),
-					},
-				},
+                        cerrarSesion: jest.fn(),
+                        completarRegistro: jest.fn(),
+                        getGoogleAuthorizationUrl: jest.fn(),
+                        loginWithGoogle: jest.fn(),
+                    },
+                },
+                {
+                    provide: ConfigService,
+                    useValue: { get: jest.fn() },
+                },
 			],
 		})
 			.overrideGuard(ThrottlerGuard)

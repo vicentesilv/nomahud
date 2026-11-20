@@ -36,6 +36,19 @@ export class UsuariosService {
         });
     }
 
+    async findByGoogleId(googleId: string): Promise<Usuario | null> {
+        return this.usuariosRepository.findOne({ where: { googleId } });
+    }
+
+    async asociarGoogle(id: number, googleId: string): Promise<Usuario> {
+        const usuario = await this.findById(id);
+        if (!usuario) throw new NotFoundException('Usuario no encontrado');
+        usuario.googleId = googleId;
+        const actualizado = await this.usuariosRepository.save(usuario);
+        const { contrasena: _, ...sinContrasena } = actualizado as Usuario & { contrasena?: string };
+        return sinContrasena as Usuario;
+    }
+
     async findByEmailWithPassword(correo: string): Promise<Usuario | null> {
         return this.usuariosRepository
             .createQueryBuilder('usuario')
