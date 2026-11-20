@@ -4,7 +4,7 @@ import api, { backendUrl } from '../../services/api';
 import { descargarArchivo } from '../../utils/archivos';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirm } from '../../hooks/useConfirm';
-import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
+import { useDivisa, MONEDAS, NOMBRES_MONEDAS } from '../../contexts/DivisaContext';
 import EquipoProyecto from '../../components/EquipoProyecto';
 
 interface Tarea {
@@ -651,7 +651,7 @@ export default function DetalleProyecto() {
               <div className="field">
                 <label>Moneda de la ganancia</label>
                 <select value={proyectoForm.moneda} onChange={(e) => setProyectoForm({ ...proyectoForm, moneda: e.target.value })}>
-                  {MONEDAS.map((m) => (<option key={m} value={m}>{m}</option>))}
+                  {MONEDAS.map((m) => (<option key={m} value={m}>{m} — {NOMBRES_MONEDAS[m]}</option>))}
                 </select>
               </div>
               {[proyecto?.estado, proyectoForm.estado].includes('completado') && proyectoForm.ganancia && proyecto?.estado !== 'completado' && (

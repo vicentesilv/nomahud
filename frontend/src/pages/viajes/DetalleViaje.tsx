@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
-import { useDivisa, MONEDAS } from '../../contexts/DivisaContext';
+import { useDivisa, MONEDAS, NOMBRES_MONEDAS } from '../../contexts/DivisaContext';
 import { useConfirm } from '../../hooks/useConfirm';
 
 interface ItinerarioItem {
@@ -416,7 +416,7 @@ export default function DetalleViaje() {
             <div className="field">
               <label>Moneda</label>
               <select name="moneda" value={form.moneda} onChange={(e) => setForm({ ...form, moneda: e.target.value })}>
-                {MONEDAS.map((m) => (<option key={m} value={m}>{m}</option>))}
+                {MONEDAS.map((m) => (<option key={m} value={m}>{m} — {NOMBRES_MONEDAS[m]}</option>))}
               </select>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { extraerLista } from '../../services/api';
+import { MONEDAS, NOMBRES_MONEDAS } from '../../contexts/DivisaContext';
 
 interface ClienteOption { id: number; nombre: string }
 interface ProyectoOption { id: number; nombre: string; clienteRel: { id: number; nombre: string } | null }
@@ -10,8 +11,6 @@ const CATEGORIAS = [
   'Suscripciones', 'Viajes', 'Alojamiento', 'Comida', 'Transporte',
   'Seguros', 'Salud', 'Equipamiento', 'Software', 'Formación', 'Otros',
 ];
-
-const MONEDAS = ['USD', 'EUR', 'ARS', 'BRL', 'MXN', 'COP', 'CLP', 'PEN', 'CRC'];
 
 function IconArrowLeft() {
   return (
@@ -131,7 +130,7 @@ export default function NuevaTransaccion() {
             <label>Moneda</label>
             <select name="moneda" value={form.moneda} onChange={handleChange}>
               {MONEDAS.map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m} value={m}>{m} — {NOMBRES_MONEDAS[m]}</option>
               ))}
             </select>
           </div>

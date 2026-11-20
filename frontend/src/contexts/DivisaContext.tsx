@@ -2,6 +2,17 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import api from '../services/api';
 
 export const MONEDAS = ['USD', 'EUR', 'ARS', 'BRL', 'MXN', 'COP', 'CLP', 'PEN', 'CRC'];
+export const NOMBRES_MONEDAS: Record<string, string> = {
+  USD: 'Dólar estadounidense',
+  EUR: 'Euro',
+  ARS: 'Peso argentino',
+  BRL: 'Real brasileño',
+  MXN: 'Peso mexicano',
+  COP: 'Peso colombiano',
+  CLP: 'Peso chileno',
+  PEN: 'Sol peruano',
+  CRC: 'Colón costarricense',
+};
 
 interface DivisaContextType {
   moneda: string;
@@ -9,6 +20,7 @@ interface DivisaContextType {
   listo: boolean;
   convertir: (monto: number, desde?: string) => number;
   formatear: (monto: number, desde?: string) => string;
+  cambiarMoneda: (nuevaMoneda: string) => Promise<void>;
   recargar: () => Promise<void>;
 }
 
@@ -62,8 +74,15 @@ export function DivisaProvider({ children }: { children: ReactNode }) {
     [convertir, moneda],
   );
 
+  const cambiarMoneda = useCallback(async (nuevaMoneda: string) => {
+    if (!MONEDAS.includes(nuevaMoneda) || nuevaMoneda === moneda) return;
+
+    await api.patch('/perfiles/mi-perfil', { monedaPreferida: nuevaMoneda });
+    setMoneda(nuevaMoneda);
+  }, [moneda]);
+
   return (
-    <DivisaContext.Provider value={{ moneda, tasas, listo, convertir, formatear, recargar }}>
+    <DivisaContext.Provider value={{ moneda, tasas, listo, convertir, formatear, cambiarMoneda, recargar }}>
       {children}
     </DivisaContext.Provider>
   );

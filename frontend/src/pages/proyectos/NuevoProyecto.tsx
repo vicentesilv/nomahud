@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { extraerLista } from '../../services/api';
-import { MONEDAS } from '../../contexts/DivisaContext';
+import { MONEDAS, NOMBRES_MONEDAS } from '../../contexts/DivisaContext';
 
 interface ClienteOption {
   id: number;
@@ -176,7 +176,7 @@ export default function NuevoProyecto() {
             <div className="field">
               <label>Moneda</label>
               <select name="moneda" value={form.moneda} onChange={handleChange}>
-                {MONEDAS.map((m) => (<option key={m} value={m}>{m}</option>))}
+                {MONEDAS.map((m) => (<option key={m} value={m}>{m} — {NOMBRES_MONEDAS[m]}</option>))}
               </select>
             </div>
           </div>

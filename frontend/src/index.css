@@ -843,6 +843,11 @@ body {
   margin-top: 0.15rem;
 }
 
+.dashboard-currency-selector {
+  min-width: 130px;
+  margin-bottom: 0;
+}
+
 
 .dashboard-stats {
   display: grid;
@@ -5598,6 +5603,17 @@ body {
   .page-header-actions {
     width: 100%;
     justify-content: end;
+  }
+
+  .page-dashboard .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .page-dashboard .dashboard-currency-selector {
+    align-self: stretch;
+    min-width: 0;
   }
 
   .page-proyectos .page-header {

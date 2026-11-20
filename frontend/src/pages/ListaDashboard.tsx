@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { useDivisa } from '../contexts/DivisaContext';
+import { MONEDAS, NOMBRES_MONEDAS, useDivisa } from '../contexts/DivisaContext';
 
 interface ResumenDashboard {
   proyectosActivos: number;
@@ -83,10 +83,22 @@ function IconAlert() {
 }
 
 export default function ListaDashboard() {
-  const { moneda, formatear } = useDivisa();
+  const { moneda, formatear, cambiarMoneda } = useDivisa();
   const [data, setData] = useState<ResumenDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guardandoMoneda, setGuardandoMoneda] = useState(false);
   const navigate = useNavigate();
+
+  const handleCambiarMoneda = async (nuevaMoneda: string) => {
+    setGuardandoMoneda(true);
+    try {
+      await cambiarMoneda(nuevaMoneda);
+    } catch {
+      // El selector conserva la moneda anterior si no se puede guardar.
+    } finally {
+      setGuardandoMoneda(false);
+    }
+  };
 
   useEffect(() => {
     api.get('/dashboard', { params: { moneda } })
@@ -148,6 +160,21 @@ export default function ListaDashboard() {
         <div>
           <h1>Dashboard</h1>
           <p className="page-header-sub">Resumen general de tu actividad</p>
+        </div>
+        <div className="dashboard-currency-selector field">
+          <label htmlFor="dashboard-moneda">Moneda preferida</label>
+          <div className="select-wrapper">
+            <select
+              id="dashboard-moneda"
+              value={moneda}
+              onChange={(e) => { void handleCambiarMoneda(e.target.value); }}
+              disabled={guardandoMoneda}
+            >
+              {MONEDAS.map((m) => (
+                <option key={m} value={m}>{m} — {NOMBRES_MONEDAS[m]}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

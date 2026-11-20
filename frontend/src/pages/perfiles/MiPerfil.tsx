@@ -4,6 +4,7 @@ import { Camera, CameraResultType } from '@capacitor/camera';
 import { esNativo } from '../../utils/plataforma';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirm } from '../../hooks/useConfirm';
+import { MONEDAS, NOMBRES_MONEDAS } from '../../contexts/DivisaContext';
 
 interface Perfil {
   id: number;
@@ -26,8 +27,6 @@ const ESTADOS_LABORALES: Record<string, string> = {
   ocupado: 'Ocupado',
   noDisponible: 'No disponible',
 };
-
-const MONEDAS = ['USD', 'EUR', 'ARS', 'BRL', 'MXN', 'COP', 'CLP', 'PEN', 'CRC'];
 
 const NIVELES_IDIOMA = ['básico', 'intermedio', 'avanzado', 'nativo', 'fluido'];
 
@@ -783,7 +782,7 @@ export default function MiPerfil() {
                 <div className="select-wrapper">
                   <select value={form.monedaPreferida} onChange={(e) => { setForm({ ...form, monedaPreferida: e.target.value }); setFormTocado(true); }}>
                     {MONEDAS.map((m) => (
-                      <option key={m} value={m}>{m}</option>
+                      <option key={m} value={m}>{m} — {NOMBRES_MONEDAS[m]}</option>
                     ))}
                   </select>
                 </div>

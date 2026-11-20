@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { MONEDAS } from '../../contexts/DivisaContext';
+import { MONEDAS, NOMBRES_MONEDAS } from '../../contexts/DivisaContext';
 
 function safeDate(raw: string): string {
   if (!raw) return '';
@@ -105,7 +105,7 @@ export default function NuevoViaje() {
           <div className="field">
             <label>Moneda</label>
             <select name="moneda" value={form.moneda} onChange={handleChange}>
-              {MONEDAS.map((m) => (<option key={m} value={m}>{m}</option>))}
+              {MONEDAS.map((m) => (<option key={m} value={m}>{m} — {NOMBRES_MONEDAS[m]}</option>))}
             </select>
           </div>
         </div>

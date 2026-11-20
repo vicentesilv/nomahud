@@ -154,5 +154,8 @@ frontend/*.pid.lock
 frontend/.npm
 frontend/dist
 
+# Core dumps
+core.*
+
 # Local Netlify folder
 .netlify
